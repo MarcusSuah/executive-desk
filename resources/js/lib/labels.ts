@@ -44,6 +44,9 @@ export const statusClasses: Record<string, string> = {
     partially_delivered:
         'bg-amber-50 text-amber-800 dark:bg-amber-950 dark:text-amber-300',
     failed: 'bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-300',
+    success:
+        'bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300',
+    warning: 'bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-300',
     overdue: 'bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-300',
     unavailable:
         'bg-orange-50 text-orange-800 dark:bg-orange-950 dark:text-orange-300',
@@ -142,6 +145,8 @@ export const auditActionLabels: Record<string, string> = {
     'briefing.sent': 'Briefing sent',
     'export.report': 'Report exported',
     'export.briefing_pdf': 'Briefing downloaded as PDF',
+    'export.audit_logs': 'Activity log exported',
+    'export.users': 'User list exported',
 };
 
 export function auditLabel(action: string): string {

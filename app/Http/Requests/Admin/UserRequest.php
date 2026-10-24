@@ -49,6 +49,7 @@ class UserRequest extends FormRequest
 
         return [
             ...$this->profileRules($user instanceof User ? $user->id : null),
+            'job_title' => ['nullable', 'string', 'max:120'],
             'timezone' => ['required', 'string', Rule::in(Timezones::identifiers())],
             'phone' => ['nullable', 'string', 'regex:/^\+[1-9]\d{7,14}$/'],
             'roles' => ['required', 'array', 'min:1'],

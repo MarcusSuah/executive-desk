@@ -16,13 +16,19 @@ use Illuminate\Database\UniqueConstraintViolationException;
 class InAppNotifier
 {
     /**
-     * Add a notification for the user unless one with the same key already exists.
+     * Add a notification for the user unless one with the same key already exists,
+     * or the user has turned off in-app alerts for the category.
      *
      * @param  string|null  $url  An absolute application URL or a relative path; stored as a path.
+     * @param  string|null  $category  The alert category (see NotificationCategories).
      */
-    public function notify(User $user, string $key, string $kind, string $title, string $body, ?string $url = null): void
+    public function notify(User $user, string $key, string $kind, string $title, string $body, ?string $url = null, ?string $category = null): void
     {
-        $notice = new InAppNotice($kind, $title, $body, $this->toPath($url));
+        if ($category !== null && ! $user->preferences()->allows($category, 'in_app')) {
+            return;
+        }
+
+        $notice = new InAppNotice($kind, $title, $body, $this->toPath($url), $category);
         $notice->id = $this->idFor($user, $key);
 
         try {

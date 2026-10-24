@@ -12,6 +12,7 @@ use App\Services\Notifications\NotificationSender;
 use App\Services\Notifications\Sms\SmsGateway;
 use App\Services\Reminders\ReminderPlanner;
 use App\Support\FormOptions;
+use App\Support\NotificationCategories;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
@@ -30,10 +31,26 @@ class NotificationPreferenceController extends Controller
 
         return Inertia::render('settings/notifications', [
             'preferences' => [
-                ...Arr::except($preferences->toArray(), ['id', 'user_id', 'created_at', 'updated_at']),
+                ...Arr::only($preferences->toArray(), [
+                    'in_app_enabled', 'email_enabled', 'sms_enabled', 'push_enabled', 'event_reminder_minutes',
+                    'task_reminder_minutes', 'presentation_reminder_minutes', 'weekly_briefing_day',
+                    'quiet_hours_enabled', 'quiet_hours_allow_high', 'digest_frequency', 'digest_day', 'digest_include',
+                ]),
+                'categories' => $preferences->categorySettings(),
                 'daily_briefing_time' => substr($preferences->daily_briefing_time, 0, 5),
                 'weekly_briefing_time' => substr($preferences->weekly_briefing_time, 0, 5),
+                'quiet_hours_start' => substr($preferences->quiet_hours_start, 0, 5),
+                'quiet_hours_end' => substr($preferences->quiet_hours_end, 0, 5),
+                'digest_time' => substr($preferences->digest_time, 0, 5),
             ],
+            'categories' => array_map(fn (string $key, array $definition) => [
+                'key' => $key,
+                'label' => $definition['label'],
+                'description' => $definition['description'],
+                'digestible' => $definition['digestible'],
+                'schedule' => $definition['schedule'],
+            ], NotificationCategories::keys(), NotificationCategories::DEFINITIONS),
+            'pendingDigestItems' => $user->digestItems()->whereNull('digested_at')->count(),
             'contact' => [
                 'email' => $user->email,
                 'email_verified' => $user->email_verified_at !== null,
@@ -69,7 +86,9 @@ class NotificationPreferenceController extends Controller
         $user = $request->user();
         $preferences = $user->preferences();
 
-        $preferences->fill($request->preferenceAttributes())->save();
+        $preferences->fill($request->preferenceAttributes());
+        $preferences->syncBriefingColumns();
+        $preferences->save();
         $audit->logChanges('notification_preferences.updated', $preferences, $user);
 
         $planner->syncForUser($user->setRelation('notificationPreference', $preferences));

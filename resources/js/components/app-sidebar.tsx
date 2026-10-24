@@ -73,7 +73,13 @@ export function AppSidebar() {
             ? [{ title: 'Settings', href: adminSettings(), icon: Settings2 }]
             : []),
         ...(can('audit.view')
-            ? [{ title: 'Audit log', href: auditLogsIndex(), icon: ScrollText }]
+            ? [
+                  {
+                      title: 'Activity log',
+                      href: auditLogsIndex(),
+                      icon: ScrollText,
+                  },
+              ]
             : []),
     ];
 

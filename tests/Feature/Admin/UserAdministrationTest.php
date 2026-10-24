@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\CalendarEvent;
 use App\Models\User;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Support\Facades\Notification;
@@ -109,4 +110,100 @@ it('records successful logins in the audit log', function () {
     expect($user->refresh()->last_login_at)->not->toBeNull();
     $this->assertDatabaseHas('audit_logs', ['action' => 'auth.login', 'user_id' => $user->id]);
     $this->assertDatabaseMissing('audit_logs', ['new_values' => json_encode(['password' => 'password'])]);
+});
+
+describe('user list', function () {
+    beforeEach(function () {
+        $this->admin->forceFill(['last_login_at' => now()])->save();
+        $this->invited = User::factory()->executive()->create(['name' => 'Ina Invited', 'job_title' => 'Chief Executive Officer', 'last_login_at' => null]);
+        $this->signedIn = User::factory()->assistant()->create(['name' => 'Sam Signed', 'last_login_at' => now()->subDay()]);
+        $this->suspended = User::factory()->executive()->inactive()->create(['name' => 'Sue Suspended']);
+    });
+
+    it('counts accounts by status and describes each person’s scope', function () {
+        $this->actingAs($this->admin)
+            ->get(route('admin.users.index'))
+            ->assertInertia(fn ($page) => $page
+                ->component('admin/users/index')
+                ->where('stats', ['total' => 4, 'pending' => 1, 'active' => 2, 'suspended' => 1])
+                ->where('users.per_page', 10)
+                ->where('users.data', function ($users): bool {
+                    $byName = collect($users)->keyBy('name');
+
+                    return $byName['Ina Invited']['status'] === 'pending'
+                        && $byName['Ina Invited']['job_title'] === 'Chief Executive Officer'
+                        && $byName['Ina Invited']['scope']['label'] === 'Own records'
+                        && $byName['Sam Signed']['status'] === 'active'
+                        && $byName['Sam Signed']['scope']['label'] === 'All executives'
+                        && $byName['Sue Suspended']['status'] === 'suspended';
+                }));
+    });
+
+    it('filters by status, job title, and page size', function (array $query, array $names) {
+        $this->actingAs($this->admin)
+            ->get(route('admin.users.index', $query))
+            ->assertInertia(fn ($page) => $page->where('users.data', fn ($users) => collect($users)->pluck('name')->all() === $names));
+    })->with([
+        'pending invites' => [['status' => 'pending'], ['Ina Invited']],
+        'suspended' => [['status' => 'suspended'], ['Sue Suspended']],
+        'older "inactive" name' => [['status' => 'inactive'], ['Sue Suspended']],
+        'job title search' => [['q' => 'Chief Exec'], ['Ina Invited']],
+    ]);
+
+    it('rejects an unsupported page size', function () {
+        $this->actingAs($this->admin)
+            ->get(route('admin.users.index', ['per_page' => 7]))
+            ->assertSessionHasErrors('per_page');
+    });
+
+    it('exports the filtered accounts', function () {
+        $response = $this->actingAs($this->admin)
+            ->get(route('admin.users.export', ['format' => 'csv', 'status' => 'pending']))
+            ->assertOk()
+            ->assertDownload();
+
+        $csv = file_get_contents($response->baseResponse->getFile()->getPathname());
+
+        expect($csv)->toContain('Ina Invited')->toContain('Pending invite')->not->toContain('Sam Signed');
+        $this->assertDatabaseHas('audit_logs', ['action' => 'export.users', 'user_id' => $this->admin->id]);
+    });
+});
+
+it('saves a job title', function () {
+    Notification::fake();
+
+    $this->actingAs($this->admin)
+        ->post(route('admin.users.store'), userPayload(['job_title' => 'Managing Director']))
+        ->assertSessionHasNoErrors();
+
+    expect(User::where('email', 'jordan@example.com')->sole()->job_title)->toBe('Managing Director');
+});
+
+describe('removing a user', function () {
+    it('removes an account and records who did it', function () {
+        $user = User::factory()->assistant()->create();
+
+        $this->actingAs($this->admin)
+            ->delete(route('admin.users.destroy', $user))
+            ->assertRedirect(route('admin.users.index'));
+
+        $this->assertModelMissing($user);
+        $this->assertDatabaseHas('audit_logs', ['action' => 'user.deleted', 'user_id' => $this->admin->id, 'auditable_id' => $user->id]);
+    });
+
+    it('keeps an account that owns appointments', function () {
+        $executive = User::factory()->executive()->create();
+        CalendarEvent::factory()->for($executive, 'owner')->create();
+
+        $this->actingAs($this->admin)->delete(route('admin.users.destroy', $executive));
+
+        $this->assertModelExists($executive);
+    });
+
+    it('does not let administrators remove themselves or assistants remove anyone', function () {
+        $this->actingAs($this->admin)->delete(route('admin.users.destroy', $this->admin))->assertForbidden();
+
+        $assistant = User::factory()->assistant()->create();
+        $this->actingAs($assistant)->delete(route('admin.users.destroy', User::factory()->create()))->assertForbidden();
+    });
 });

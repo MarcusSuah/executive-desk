@@ -3,6 +3,7 @@
 namespace App\Services\Notifications;
 
 use App\Enums\Permission;
+use App\Jobs\SendActivityNotice;
 use App\Models\AuditLog;
 use App\Models\CalendarEvent;
 use App\Models\ExecutiveBriefing;
@@ -10,6 +11,7 @@ use App\Models\Presentation;
 use App\Models\Task;
 use App\Models\User;
 use App\Support\DisplayTime;
+use App\Support\NotificationCategories;
 use App\Support\RolesAndPermissions;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Model;
@@ -25,6 +27,10 @@ use Spatie\Permission\Models\Role as SpatieRole;
  * - Presentations: the executive, the presenter, and the creator.
  * - Briefings: the recipient.
  * - Accounts and application settings: administrators, plus the affected user.
+ *
+ * Each person's category settings decide whether the alert appears in the bell and
+ * whether it is also sent by email, SMS, or push. Schedule changes are sent on those
+ * channels by ScheduleChangeNotifier, which has the full before-and-after details.
  */
 class ActivityNotifier
 {
@@ -110,7 +116,10 @@ class ActivityNotifier
             ->active()
             ->whereIn('id', $this->recipientIds($log, $auditable))
             ->whereKeyNot(array_values(array_filter([$actor?->id, $toldSeparately])))
+            ->with('notificationPreference')
             ->get();
+
+        $category = NotificationCategories::forActivity($log->action);
 
         foreach ($recipients as $recipient) {
             [$title, $body, $url] = $this->describe($log, $auditable, $actor, $recipient);
@@ -122,7 +131,16 @@ class ActivityNotifier
                 $title,
                 $body,
                 $url,
+                $category,
             );
+
+            if ($category === 'schedule_changes') {
+                continue;
+            }
+
+            foreach ($recipient->enabledChannels($category) as $channel) {
+                SendActivityNotice::dispatch($log->id, $recipient->id, $channel, $category, $title, $body, $url)->afterCommit();
+            }
         }
     }
 

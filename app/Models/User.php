@@ -21,6 +21,7 @@ use Spatie\Permission\Traits\HasRoles;
 /**
  * @property int $id
  * @property string $name
+ * @property string|null $job_title
  * @property string $email
  * @property string|null $google_id
  * @property string $timezone
@@ -39,7 +40,7 @@ use Spatie\Permission\Traits\HasRoles;
  * @property Carbon|null $updated_at
  * @property-read NotificationPreference|null $notificationPreference
  */
-#[Fillable(['name', 'email', 'password', 'timezone', 'phone'])]
+#[Fillable(['name', 'job_title', 'email', 'password', 'timezone', 'phone'])]
 #[Hidden(['password', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token', 'google_id'])]
 class User extends Authenticatable implements MustVerifyEmail
 {
@@ -125,6 +126,16 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
+     * Get the email alerts held for the user's digest.
+     *
+     * @return HasMany<DigestItem, $this>
+     */
+    public function digestItems(): HasMany
+    {
+        return $this->hasMany(DigestItem::class);
+    }
+
+    /**
      * Get the user's briefings.
      *
      * @return HasMany<ExecutiveBriefing, $this>
@@ -160,29 +171,35 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
-     * Determine whether the user can receive notifications on the given channel.
+     * Determine whether the user can receive notifications on the given channel,
+     * optionally for one alert category (see NotificationCategories).
      */
-    public function canReceiveOn(NotificationChannel $channel): bool
+    public function canReceiveOn(NotificationChannel $channel, ?string $category = null): bool
     {
         $preferences = $this->preferences();
 
-        return match ($channel) {
-            NotificationChannel::Mail => $preferences->email_enabled,
-            NotificationChannel::Sms => $preferences->sms_enabled && $this->hasVerifiedPhone(),
-            NotificationChannel::Push => $preferences->push_enabled,
-        };
+        $enabled = $category === null
+            ? match ($channel) {
+                NotificationChannel::Mail => $preferences->email_enabled,
+                NotificationChannel::Sms => $preferences->sms_enabled,
+                NotificationChannel::Push => $preferences->push_enabled,
+            }
+        : $preferences->allows($category, $channel->value);
+
+        return $enabled && ($channel !== NotificationChannel::Sms || $this->hasVerifiedPhone());
     }
 
     /**
-     * Get the channels the user has enabled and can currently receive on.
+     * Get the channels the user has enabled and can currently receive on,
+     * optionally for one alert category.
      *
      * @return array<int, NotificationChannel>
      */
-    public function enabledChannels(): array
+    public function enabledChannels(?string $category = null): array
     {
         return array_values(array_filter(
             NotificationChannel::cases(),
-            fn (NotificationChannel $channel): bool => $this->canReceiveOn($channel),
+            fn (NotificationChannel $channel): bool => $this->canReceiveOn($channel, $category),
         ));
     }
 

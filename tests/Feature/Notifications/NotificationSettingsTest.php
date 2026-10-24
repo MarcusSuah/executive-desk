@@ -7,6 +7,7 @@ use App\Models\PushSubscription;
 use App\Models\Reminder;
 use App\Models\User;
 use App\Services\Reminders\ReminderPlanner;
+use App\Support\NotificationCategories;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Log;
 
@@ -23,21 +24,29 @@ beforeEach(function () {
  */
 function preferencePayload(array $overrides = []): array
 {
+    $categories = NotificationCategories::defaults();
+    $categories['weekly_briefing'] = [...$categories['weekly_briefing'], 'in_app' => false, 'mail' => false];
+
     return [
+        'in_app_enabled' => true,
         'email_enabled' => true,
         'sms_enabled' => false,
         'push_enabled' => false,
+        'categories' => $categories,
         'event_reminder_minutes' => [60, 15],
         'task_reminder_minutes' => [1440],
         'presentation_reminder_minutes' => [1440],
-        'schedule_change_notifications' => true,
-        'daily_briefing_enabled' => true,
         'daily_briefing_time' => '06:30',
-        'daily_briefing_channels' => ['mail'],
-        'weekly_briefing_enabled' => false,
         'weekly_briefing_day' => 1,
         'weekly_briefing_time' => '07:00',
-        'weekly_briefing_channels' => [],
+        'quiet_hours_enabled' => false,
+        'quiet_hours_start' => '22:00',
+        'quiet_hours_end' => '07:00',
+        'quiet_hours_allow_high' => true,
+        'digest_frequency' => 'off',
+        'digest_time' => '08:00',
+        'digest_day' => 1,
+        'digest_include' => 'non_critical',
         ...$overrides,
     ];
 }
@@ -67,10 +76,39 @@ describe('preferences', function () {
             ->assertSessionHasErrors(['sms_enabled' => 'Verify your mobile number before turning on SMS notifications.']);
     });
 
-    it('requires a channel when a briefing is enabled', function () {
+    it('turns a briefing off when every channel for it is off', function () {
         $this->actingAs($this->executive)
-            ->put(route('notifications.update'), preferencePayload(['daily_briefing_channels' => []]))
-            ->assertSessionHasErrors('daily_briefing_channels');
+            ->put(route('notifications.update'), preferencePayload())
+            ->assertSessionHasNoErrors();
+
+        $preferences = $this->executive->refresh()->preferences();
+
+        expect($preferences->daily_briefing_enabled)->toBeTrue()
+            ->and($preferences->daily_briefing_channels)->toBe(['mail'])
+            ->and($preferences->weekly_briefing_enabled)->toBeFalse()
+            ->and($preferences->weekly_briefing_channels)->toBe([]);
+    });
+
+    it('rejects an unknown category, priority, or digest setting', function () {
+        $categories = NotificationCategories::defaults();
+
+        $this->actingAs($this->executive)
+            ->put(route('notifications.update'), preferencePayload([
+                'categories' => [...$categories, 'surprise' => $categories['record_activity']],
+            ]))
+            ->assertSessionHasErrors('categories');
+
+        $categories['task_assignments']['priority'] = 'urgent';
+
+        $this->actingAs($this->executive)
+            ->put(route('notifications.update'), preferencePayload(['categories' => $categories, 'digest_frequency' => 'hourly']))
+            ->assertSessionHasErrors(['categories.task_assignments.priority', 'digest_frequency']);
+    });
+
+    it('requires quiet hours to end at a different time than they start', function () {
+        $this->actingAs($this->executive)
+            ->put(route('notifications.update'), preferencePayload(['quiet_hours_start' => '22:00', 'quiet_hours_end' => '22:00']))
+            ->assertSessionHasErrors('quiet_hours_end');
     });
 
     it('reports SMS as not configured on the settings page', function () {

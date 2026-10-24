@@ -10,6 +10,7 @@ use App\Models\Presentation;
 use App\Models\Reminder;
 use App\Models\Task;
 use App\Models\User;
+use App\Support\NotificationCategories;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
@@ -170,6 +171,7 @@ class ReminderPlanner
     {
         $plans = [];
         $now = now();
+        $channels = $user->enabledChannels(NotificationCategories::forReminder($kind));
 
         foreach (array_unique(array_map('intval', $minutes)) as $minutesBefore) {
             $scheduledFor = $target->subMinutes($minutesBefore);
@@ -178,7 +180,7 @@ class ReminderPlanner
                 continue;
             }
 
-            foreach ($user->enabledChannels() as $channel) {
+            foreach ($channels as $channel) {
                 $plans[] = [
                     'user_id' => $user->id,
                     'kind' => $kind->value,

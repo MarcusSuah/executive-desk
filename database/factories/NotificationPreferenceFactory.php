@@ -20,6 +20,7 @@ class NotificationPreferenceFactory extends Factory
     {
         return [
             'user_id' => User::factory(),
+            'in_app_enabled' => true,
             'email_enabled' => true,
             'sms_enabled' => false,
             'push_enabled' => false,
@@ -34,6 +35,14 @@ class NotificationPreferenceFactory extends Factory
             'weekly_briefing_day' => 1,
             'weekly_briefing_time' => '07:00:00',
             'weekly_briefing_channels' => ['mail'],
+            'quiet_hours_enabled' => false,
+            'quiet_hours_start' => '22:00:00',
+            'quiet_hours_end' => '07:00:00',
+            'quiet_hours_allow_high' => true,
+            'digest_frequency' => 'off',
+            'digest_time' => '08:00:00',
+            'digest_day' => 1,
+            'digest_include' => 'non_critical',
         ];
     }
 }

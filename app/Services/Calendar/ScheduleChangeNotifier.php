@@ -29,11 +29,7 @@ class ScheduleChangeNotifier
             ->get();
 
         foreach ($recipients as $recipient) {
-            if (! $recipient->preferences()->schedule_change_notifications) {
-                continue;
-            }
-
-            foreach ($recipient->enabledChannels() as $channel) {
+            foreach ($recipient->enabledChannels('schedule_changes') as $channel) {
                 SendScheduleChangeNotice::dispatch(
                     $event->id,
                     $recipient->id,

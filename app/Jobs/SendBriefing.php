@@ -68,8 +68,9 @@ class SendBriefing implements ShouldQueue
             ->map(fn (NotificationChannel $channel) => $channel->value)
             ->all();
 
+        $category = $briefing->type === BriefingType::Daily ? 'daily_briefing' : 'weekly_briefing';
         $message = $this->message($briefing);
-        $inApp->notify($user, "briefing:{$briefing->id}", 'briefing', $message->title, $message->body, $message->url);
+        $inApp->notify($user, "briefing:{$briefing->id}", 'briefing', $message->title, $message->body, $message->url, $category);
 
         $results = [];
         $retry = false;
@@ -85,7 +86,7 @@ class SendBriefing implements ShouldQueue
                 continue;
             }
 
-            if (! $user->canReceiveOn($channel)) {
+            if (! $user->canReceiveOn($channel, $category)) {
                 $results[] = DeliveryStatus::Skipped;
 
                 continue;

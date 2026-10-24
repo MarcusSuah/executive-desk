@@ -89,7 +89,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::prefix('admin')->name('admin.')->group(function () {
         Route::middleware('can:'.Permission::ManageUsers->value)->group(function () {
-            Route::resource('users', UserController::class)->except(['show', 'destroy']);
+            Route::get('users/export', [UserController::class, 'export'])->middleware('throttle:exports')->name('users.export');
+            Route::resource('users', UserController::class)->except(['show']);
             Route::patch('users/{user}/active', [UserController::class, 'toggleActive'])->name('users.active');
             Route::post('users/{user}/password-reset', [UserController::class, 'sendPasswordReset'])->name('users.password-reset');
         });
@@ -113,6 +114,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('audit-logs', [AuditLogController::class, 'index'])
             ->middleware('can:'.Permission::ViewAuditLogs->value)
             ->name('audit-logs.index');
+        Route::get('audit-logs/export', [AuditLogController::class, 'export'])
+            ->middleware(['can:'.Permission::ViewAuditLogs->value, 'throttle:exports'])
+            ->name('audit-logs.export');
     });
 });
 

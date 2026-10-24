@@ -38,4 +38,12 @@ class UserPolicy
     {
         return $user->can(Permission::ManageUsers->value) && $user->id !== $model->id;
     }
+
+    /**
+     * Determine whether the user can permanently remove the account.
+     */
+    public function delete(User $user, User $model): bool
+    {
+        return $user->can(Permission::ManageUsers->value) && $user->id !== $model->id;
+    }
 }

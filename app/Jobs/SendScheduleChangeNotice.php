@@ -6,6 +6,7 @@ use App\Enums\NotificationChannel;
 use App\Mail\NoticeMail;
 use App\Models\CalendarEvent;
 use App\Models\User;
+use App\Services\Notifications\AlertGate;
 use App\Services\Notifications\NotificationSender;
 use App\Services\Notifications\OutboundMessage;
 use App\Services\Reminders\TransientDeliveryException;
@@ -57,16 +58,23 @@ class SendScheduleChangeNotice implements ShouldQueue
     /**
      * Execute the job.
      */
-    public function handle(NotificationSender $sender): void
+    public function handle(NotificationSender $sender, AlertGate $gate): void
     {
         $event = CalendarEvent::withTrashed()->find($this->eventId);
         $user = User::find($this->userId);
 
-        if ($event === null || $user === null || ! $user->is_active || ! $user->canReceiveOn($this->channel)) {
+        if ($event === null || $user === null || ! $user->is_active || ! $user->canReceiveOn($this->channel, 'schedule_changes')) {
             return;
         }
 
-        $result = $sender->send($user, $this->channel, $this->message($event, $user), $event, $this->attempts());
+        $message = $this->message($event, $user);
+
+        // Only the first attempt decides; a retry is already past the gate.
+        if ($this->attempts() === 1 && $gate->admit($user, 'schedule_changes', $this->channel, $message->title, $message->body, $message->url) !== AlertGate::SEND) {
+            return;
+        }
+
+        $result = $sender->send($user, $this->channel, $message, $event, $this->attempts());
 
         if ($result->retryable && $this->attempts() < $this->tries) {
             throw new TransientDeliveryException("Schedule change notice for event {$event->id} will be retried.");

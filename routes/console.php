@@ -14,6 +14,11 @@ Schedule::command('briefings:dispatch')
     ->withoutOverlapping(10)
     ->onOneServer();
 
+Schedule::command('notifications:send-digests')
+    ->everyFiveMinutes()
+    ->withoutOverlapping(10)
+    ->onOneServer();
+
 Schedule::command('tasks:generate-recurring')
     ->hourly()
     ->withoutOverlapping(30)

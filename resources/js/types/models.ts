@@ -196,6 +196,8 @@ export type Reminder = {
 export type AuditEntry = {
     id: number;
     action: string;
+    module: string;
+    result: 'success' | 'warning' | 'failed';
     actor?: string | null;
     auditable_type: string | null;
     auditable_id: number | null;

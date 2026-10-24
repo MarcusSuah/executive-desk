@@ -4,15 +4,20 @@ import type { Paginated } from '@/types';
 
 /**
  * Page links for a paginated resource collection.
+ *
+ * With a noun (e.g. "events"), the "Showing 1 to 10 of 97 events" summary is
+ * shown even when everything fits on one page.
  */
 export default function PaginationNav<T>({
     paginator,
+    noun,
 }: {
     paginator: Paginated<T>;
+    noun?: string;
 }) {
     const { meta } = paginator;
 
-    if (meta.last_page <= 1) {
+    if (meta.last_page <= 1 && (noun === undefined || meta.total === 0)) {
         return null;
     }
 
@@ -22,7 +27,9 @@ export default function PaginationNav<T>({
             aria-label="Pagination"
         >
             <p className="text-sm text-muted-foreground">
-                Showing {meta.from}–{meta.to} of {meta.total}
+                {noun
+                    ? `Showing ${meta.from} to ${meta.to} of ${meta.total} ${noun}`
+                    : `Showing ${meta.from}–${meta.to} of ${meta.total}`}
             </p>
             <div className="flex flex-wrap gap-1">
                 {meta.links.map((link, index) => {

@@ -25,6 +25,7 @@ type UserFormProps = {
     user: {
         id: number;
         name: string;
+        job_title: string | null;
         email: string;
         timezone: string;
         phone: string | null;
@@ -49,6 +50,7 @@ export default function UserForm({
 }: UserFormProps) {
     const form = useForm({
         name: user?.name ?? '',
+        job_title: user?.job_title ?? '',
         email: user?.email ?? '',
         timezone: user?.timezone ?? defaultTimezone,
         phone: user?.phone ?? '',
@@ -165,6 +167,25 @@ export default function UserForm({
                                         onChange={(e) =>
                                             form.setData(
                                                 'email',
+                                                e.target.value,
+                                            )
+                                        }
+                                        autoComplete="off"
+                                    />
+                                </FormField>
+                                <FormField
+                                    id="job_title"
+                                    label="Job title"
+                                    error={errors.job_title}
+                                >
+                                    <Input
+                                        id="job_title"
+                                        value={form.data.job_title}
+                                        maxLength={120}
+                                        placeholder="e.g. Chief Executive Officer"
+                                        onChange={(e) =>
+                                            form.setData(
+                                                'job_title',
                                                 e.target.value,
                                             )
                                         }

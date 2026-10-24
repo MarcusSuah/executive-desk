@@ -1,4 +1,4 @@
-import { Link } from '@inertiajs/react';
+import { Link, usePage } from '@inertiajs/react';
 import type { PropsWithChildren } from 'react';
 import Heading from '@/components/heading';
 import { Button } from '@/components/ui/button';
@@ -36,6 +36,8 @@ const sidebarNavItems: NavItem[] = [
 
 export default function SettingsLayout({ children }: PropsWithChildren) {
     const { isCurrentOrParentUrl } = useCurrentUrl();
+    // The notification preferences table needs more room than the other forms.
+    const isWide = usePage().component === 'settings/notifications';
 
     return (
         <div className="px-4 py-6">
@@ -73,8 +75,15 @@ export default function SettingsLayout({ children }: PropsWithChildren) {
 
                 <Separator className="my-6 lg:hidden" />
 
-                <div className="flex-1 md:max-w-2xl">
-                    <section className="max-w-xl space-y-12">
+                <div
+                    className={cn(
+                        'min-w-0 flex-1',
+                        isWide ? 'xl:max-w-6xl' : 'md:max-w-2xl',
+                    )}
+                >
+                    <section
+                        className={cn('space-y-12', !isWide && 'max-w-xl')}
+                    >
                         {children}
                     </section>
                 </div>

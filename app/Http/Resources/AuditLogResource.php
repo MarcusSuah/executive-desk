@@ -3,6 +3,7 @@
 namespace App\Http\Resources;
 
 use App\Models\AuditLog;
+use App\Support\AuditCatalog;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -21,6 +22,8 @@ class AuditLogResource extends JsonResource
         return [
             'id' => $this->id,
             'action' => $this->action,
+            'module' => AuditCatalog::module($this->action),
+            'result' => AuditCatalog::result($this->action, $this->new_values),
             'actor' => $this->whenLoaded('user', fn () => $this->user?->name),
             'auditable_type' => $this->auditable_type,
             'auditable_id' => $this->auditable_id,

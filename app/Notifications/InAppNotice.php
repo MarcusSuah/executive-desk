@@ -14,12 +14,14 @@ class InAppNotice extends Notification
      *
      * @param  string  $kind  e.g. "event_reminder", "schedule_change", "briefing", "task_assigned"
      * @param  string|null  $url  Relative path within the application to open when clicked.
+     * @param  string|null  $category  The alert category (see NotificationCategories).
      */
     public function __construct(
         public string $kind,
         public string $title,
         public string $body,
         public ?string $url = null,
+        public ?string $category = null,
     ) {}
 
     /**
@@ -44,6 +46,7 @@ class InAppNotice extends Notification
             'title' => $this->title,
             'body' => $this->body,
             'url' => $this->url,
+            'category' => $this->category,
         ];
     }
 }

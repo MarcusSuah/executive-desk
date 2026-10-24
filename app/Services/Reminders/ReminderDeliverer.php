@@ -5,9 +5,11 @@ namespace App\Services\Reminders;
 use App\Enums\DeliveryStatus;
 use App\Enums\ReminderStatus;
 use App\Models\Reminder;
+use App\Services\Notifications\AlertGate;
 use App\Services\Notifications\ErrorSanitizer;
 use App\Services\Notifications\InAppNotifier;
 use App\Services\Notifications\NotificationSender;
+use App\Support\NotificationCategories;
 use Illuminate\Support\Facades\DB;
 use Throwable;
 
@@ -24,6 +26,7 @@ class ReminderDeliverer
         private ReminderMessageFactory $messages,
         private NotificationSender $sender,
         private InAppNotifier $inApp,
+        private AlertGate $gate,
     ) {}
 
     /**
@@ -65,6 +68,7 @@ class ReminderDeliverer
         }
 
         $message = $this->messages->make($reminder);
+        $category = NotificationCategories::forReminder($reminder->kind);
 
         // One bell item per reminder time, however many channels deliver it.
         $this->inApp->notify(
@@ -74,10 +78,18 @@ class ReminderDeliverer
             $message->title,
             $message->body,
             $message->url,
+            $category,
         );
 
-        if (! $reminder->user->canReceiveOn($reminder->channel)) {
+        if (! $reminder->user->canReceiveOn($reminder->channel, $category)) {
             $this->finish($reminder, ReminderStatus::Skipped, reason: 'The recipient has turned off this channel.');
+
+            return;
+        }
+
+        // Reminders are never digested, so only quiet hours can hold one back here.
+        if ($this->gate->admit($reminder->user, $category, $reminder->channel, $message->title, $message->body, $message->url) !== AlertGate::SEND) {
+            $this->finish($reminder, ReminderStatus::Skipped, reason: 'Held back during the recipient’s quiet hours.');
 
             return;
         }
