@@ -24,6 +24,7 @@ use App\Services\Notifications\Sms\SmsGateway;
 use Carbon\CarbonImmutable;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Relations\Relation;
+use Illuminate\Foundation\DevCommands;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
@@ -54,6 +55,11 @@ class AppServiceProvider extends ServiceProvider
         $this->configureDefaults();
         $this->configureMorphMap();
         $this->configureRateLimiting();
+
+        if ($this->app->runningInConsole()) {
+            // `composer run dev` also runs the scheduler, which drives reminders and briefings.
+            DevCommands::artisan('schedule:work', 'scheduler');
+        }
     }
 
     /**

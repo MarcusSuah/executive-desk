@@ -73,3 +73,11 @@ it('forbids executives from editing pages', function (string $route, string $par
     ['tasks.edit', 'task'],
     ['presentations.edit', 'presentation'],
 ]);
+
+it('sends defensive security headers', function () {
+    $this->actingAs($this->executive)
+        ->get(route('dashboard'))
+        ->assertHeader('X-Frame-Options', 'DENY')
+        ->assertHeader('X-Content-Type-Options', 'nosniff')
+        ->assertHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+});
