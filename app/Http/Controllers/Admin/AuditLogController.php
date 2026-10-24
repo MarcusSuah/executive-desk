@@ -16,19 +16,19 @@ use Inertia\Response;
 class AuditLogController extends Controller
 {
     /**
-     * The action groups that can be filtered on.
-     *
-     * @var array<int, string>
-     */
-    private const AREAS = ['auth', 'user', 'event', 'task', 'presentation', 'attachment', 'checklist', 'reminder', 'notification_preferences', 'phone', 'push', 'settings', 'briefing', 'export'];
-
-    /**
      * List audit log entries.
      */
     public function index(Request $request): Response
     {
+        // Areas come from what has actually been recorded, e.g. "event" from "event.created".
+        $areas = AuditLog::query()
+            ->selectRaw("DISTINCT SUBSTRING_INDEX(action, '.', 1) as area")
+            ->orderBy('area')
+            ->pluck('area')
+            ->all();
+
         $filters = $request->validate([
-            'area' => ['nullable', Rule::in(self::AREAS)],
+            'area' => ['nullable', Rule::in($areas)],
             'user' => ['nullable', 'integer'],
             'from' => ['nullable', 'date_format:Y-m-d'],
             'to' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:from'],
@@ -54,7 +54,7 @@ class AuditLogController extends Controller
                 'from' => $filters['from'] ?? '',
                 'to' => $filters['to'] ?? '',
             ],
-            'areas' => array_map(fn (string $area) => ['value' => $area, 'label' => ucwords(str_replace('_', ' ', $area))], self::AREAS),
+            'areas' => array_map(fn (string $area) => ['value' => $area, 'label' => ucwords(str_replace('_', ' ', $area))], $areas),
             'users' => FormOptions::users(),
         ]);
     }

@@ -98,10 +98,59 @@ export const auditActionLabels: Record<string, string> = {
     'reminder.disabled': 'Reminder turned off',
     'reminder.enabled': 'Reminder turned on',
     'reminder.retried': 'Reminder retried',
+    'auth.login': 'Signed in',
+    'auth.logout': 'Signed out',
+    'auth.failed': 'Failed sign-in attempt',
+    'auth.lockout': 'Locked out after too many attempts',
+    'auth.password_reset': 'Password reset',
+    'auth.password_reset_link_sent': 'Password reset link requested',
+    'auth.email_verified': 'Email address verified',
+    'auth.two_factor_failed': 'Incorrect two-factor code',
+    'auth.recovery_code_used': 'Signed in with a recovery code',
+    'auth.google_linked': 'Google account linked',
+    'auth.google_rejected': 'Google sign-in refused',
+    'security.password_changed': 'Password changed',
+    'security.two_factor_enabled': 'Two-factor authentication turned on',
+    'security.two_factor_confirmed': 'Two-factor authentication confirmed',
+    'security.two_factor_disabled': 'Two-factor authentication turned off',
+    'security.recovery_codes_generated': 'Recovery codes regenerated',
+    'profile.updated': 'Profile updated',
+    'page.viewed': 'Page viewed',
+    'user.created': 'Account created',
+    'user.updated': 'Account updated',
+    'user.roles_changed': 'Roles changed',
+    'user.deactivated': 'Account deactivated',
+    'user.reactivated': 'Account reactivated',
+    'user.password_reset_sent': 'Password reset link sent by administrator',
+    'user.deleted': 'Account deleted',
+    'settings.updated': 'Notification defaults changed',
+    'settings.google_sign_in_updated': 'Google sign-in settings changed',
+    'settings.google_sign_in_cleared': 'Google sign-in settings removed',
+    'settings.sign_in_background_updated': 'Sign-in background changed',
+    'settings.sign_in_background_removed': 'Sign-in background reset',
+    'notification_preferences.updated': 'Notification preferences changed',
+    'phone.code_sent': 'Phone verification code sent',
+    'phone.verified': 'Phone number verified',
+    'phone.removed': 'Phone number removed',
+    'push.subscribed': 'Push notifications enabled on a device',
+    'push.unsubscribed': 'Push device removed',
+    'briefing.generated': 'Briefing prepared',
+    'briefing.sent': 'Briefing sent',
+    'export.report': 'Report exported',
+    'export.briefing_pdf': 'Briefing downloaded as PDF',
 };
 
 export function auditLabel(action: string): string {
-    return auditActionLabels[action] ?? humanize(action);
+    if (auditActionLabels[action]) {
+        return auditActionLabels[action];
+    }
+
+    // Requests recorded by the audit safety net, e.g. "request.inbox.read".
+    if (action.startsWith('request.')) {
+        return `Request: ${humanize(action.slice('request.'.length))}`;
+    }
+
+    return humanize(action);
 }
 
 export function formatBytes(bytes: number): string {

@@ -77,6 +77,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('notifications', [NotificationHistoryController::class, 'index'])->name('notifications.history');
 
+    Route::get('inbox', [InboxController::class, 'index'])->name('inbox.index');
     Route::post('inbox/read-all', [InboxController::class, 'readAll'])->name('inbox.read-all');
     Route::post('inbox/{notification}/read', [InboxController::class, 'read'])->whereUuid('notification')->name('inbox.read');
 

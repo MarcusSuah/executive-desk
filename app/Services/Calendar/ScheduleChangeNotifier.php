@@ -5,8 +5,6 @@ namespace App\Services\Calendar;
 use App\Jobs\SendScheduleChangeNotice;
 use App\Models\CalendarEvent;
 use App\Models\User;
-use App\Services\Notifications\InAppNotifier;
-use App\Support\DisplayTime;
 use Carbon\CarbonImmutable;
 
 /**
@@ -15,8 +13,6 @@ use Carbon\CarbonImmutable;
  */
 class ScheduleChangeNotifier
 {
-    public function __construct(private InAppNotifier $inApp) {}
-
     /**
      * Queue change notices after the surrounding transaction commits.
      *
@@ -36,17 +32,6 @@ class ScheduleChangeNotifier
             if (! $recipient->preferences()->schedule_change_notifications) {
                 continue;
             }
-
-            $this->inApp->notify(
-                $recipient,
-                "schedule:{$event->id}:{$event->version}",
-                'schedule_change',
-                ucfirst($change).': '.$event->title,
-                $change === 'cancelled'
-                    ? 'This appointment has been cancelled.'
-                    : 'New time: '.DisplayTime::range($event->starts_at, $event->ends_at, $recipient->timezone),
-                route('events.show', $event),
-            );
 
             foreach ($recipient->enabledChannels() as $channel) {
                 SendScheduleChangeNotice::dispatch(

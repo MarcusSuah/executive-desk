@@ -1,12 +1,5 @@
 import { Link, router, usePage, usePoll } from '@inertiajs/react';
-import {
-    Bell,
-    CalendarClock,
-    CalendarX2,
-    CheckSquare,
-    FileText,
-    Presentation,
-} from 'lucide-react';
+import { Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
     DropdownMenu,
@@ -18,18 +11,10 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/hooks/use-auth';
 import { formatDateTime } from '@/lib/datetime';
+import { notificationIcon } from '@/lib/notification-icons';
 import { cn } from '@/lib/utils';
-import { read, readAll } from '@/routes/inbox';
+import { index as inboxIndex, read, readAll } from '@/routes/inbox';
 import { edit as notificationSettings } from '@/routes/notifications';
-
-const ICONS: Record<string, typeof Bell> = {
-    event_reminder: CalendarClock,
-    schedule_change: CalendarX2,
-    task_reminder: CheckSquare,
-    task_assigned: CheckSquare,
-    presentation_reminder: Presentation,
-    briefing: FileText,
-};
 
 /**
  * The notification bell: unread count, the latest items, and mark-as-read actions.
@@ -63,7 +48,7 @@ export function NotificationBell() {
                 >
                     <Bell className="size-5" />
                     {unread > 0 && (
-                        <span className="absolute -top-0.5 -right-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-red-600 px-1 text-[10px] leading-none font-semibold text-white ring-2 ring-background">
+                        <span className="absolute -top-0.5 -right-0.5 flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] leading-none font-semibold text-white ring-2 ring-background">
                             {badge}
                         </span>
                     )}
@@ -96,7 +81,7 @@ export function NotificationBell() {
                 ) : (
                     <div className="max-h-96 overflow-y-auto">
                         {inbox.items.map((item) => {
-                            const Icon = ICONS[item.kind] ?? Bell;
+                            const Icon = notificationIcon(item.kind);
 
                             return (
                                 <DropdownMenuItem
@@ -157,14 +142,20 @@ export function NotificationBell() {
                     </div>
                 )}
                 <DropdownMenuSeparator className="m-0" />
-                <DropdownMenuItem
-                    asChild
-                    className="justify-center rounded-none py-2 text-xs"
-                >
-                    <Link href={notificationSettings()}>
-                        Notification settings
-                    </Link>
-                </DropdownMenuItem>
+                <div className="grid grid-cols-2">
+                    <DropdownMenuItem
+                        asChild
+                        className="justify-center rounded-none py-2 text-xs font-medium"
+                    >
+                        <Link href={inboxIndex()}>View all</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                        asChild
+                        className="justify-center rounded-none border-l py-2 text-xs"
+                    >
+                        <Link href={notificationSettings()}>Settings</Link>
+                    </DropdownMenuItem>
+                </div>
             </DropdownMenuContent>
         </DropdownMenu>
     );

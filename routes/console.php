@@ -21,6 +21,8 @@ Schedule::command('tasks:generate-recurring')
 
 Schedule::command('queue:prune-failed --hours=720')->daily();
 
+Schedule::command('audit:prune')->dailyAt('02:30')->onOneServer();
+
 Schedule::call(fn () => Cache::put(SystemHealth::SCHEDULER_HEARTBEAT_KEY, now()->toIso8601String(), now()->addHour()))
     ->name('scheduler-heartbeat')
     ->everyMinute();

@@ -5,11 +5,15 @@ namespace App\Http\Controllers\Settings;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Settings\ProfileDeleteRequest;
 use App\Http\Requests\Settings\ProfileUpdateRequest;
+use App\Models\Presentation;
+use App\Services\AuditLogger;
 use App\Support\FormOptions;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -30,7 +34,7 @@ class ProfileController extends Controller
     /**
      * Update the user's profile information.
      */
-    public function update(ProfileUpdateRequest $request): RedirectResponse
+    public function update(ProfileUpdateRequest $request, AuditLogger $audit): RedirectResponse
     {
         $request->user()->fill($request->validated());
 
@@ -40,6 +44,8 @@ class ProfileController extends Controller
 
         $request->user()->save();
 
+        $audit->logChanges('profile.updated', $request->user(), $request->user());
+
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Profile updated.')]);
 
         return to_route('profile.edit');
@@ -48,13 +54,24 @@ class ProfileController extends Controller
     /**
      * Delete the user's profile.
      */
-    public function destroy(ProfileDeleteRequest $request): RedirectResponse
+    public function destroy(ProfileDeleteRequest $request, AuditLogger $audit): RedirectResponse
     {
         $user = $request->user();
 
+        // Appointments and presentations must keep their executive, so these accounts are deactivated by an administrator instead.
+        if ($user->ownedEvents()->withTrashed()->exists() || Presentation::withTrashed()->where('owner_id', $user->id)->exists()) {
+            throw ValidationException::withMessages([
+                'password' => 'This account owns appointments or presentations, so it cannot be deleted. Ask an administrator to deactivate it instead.',
+            ]);
+        }
+
+        // Log out first: logging out saves the remember token, which would re-insert a deleted user.
         Auth::logout();
 
-        $user->delete();
+        DB::transaction(function () use ($user, $audit): void {
+            $audit->log('user.deleted', $user, ['name' => $user->name, 'email' => $user->email], [], $user);
+            $user->delete();
+        });
 
         $request->session()->invalidate();
         $request->session()->regenerateToken();

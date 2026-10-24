@@ -4,12 +4,14 @@ namespace App\Services;
 
 use App\Models\AuditLog;
 use App\Models\User;
+use App\Services\Notifications\ActivityNotifier;
 use BackedEnum;
 use DateTimeInterface;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
+use Throwable;
 
 class AuditLogger
 {
@@ -21,7 +23,16 @@ class AuditLogger
     private const SENSITIVE_KEYS = [
         'password', 'remember_token', 'two_factor_secret', 'two_factor_recovery_codes',
         'auth_token', 'public_key', 'endpoint', 'endpoint_hash', 'token', 'secret', 'api_key',
+        'current_password', 'password_confirmation', 'code', 'recovery_code', 'client_secret',
+        'google_client_secret', 'google_id',
     ];
+
+    /**
+     * Whether an entry has been written during the current request.
+     */
+    private bool $recordedThisRequest = false;
+
+    public function __construct(private ActivityNotifier $activity) {}
 
     /**
      * Attribute names that are noise in a change history.
@@ -45,8 +56,11 @@ class AuditLogger
     ): AuditLog {
         $request = app()->runningInConsole() && ! app()->runningUnitTests() ? null : request();
 
+        $current = Auth::user();
+        $actor ??= $current instanceof User ? $current : null;
+
         $log = new AuditLog;
-        $log->user_id = ($actor ?? Auth::user())?->getKey();
+        $log->user_id = $actor?->getKey();
         $log->action = $action;
         $log->old_values = $this->sanitize($oldValues) ?: null;
         $log->new_values = $this->sanitize($newValues) ?: null;
@@ -59,7 +73,32 @@ class AuditLogger
 
         $log->save();
 
+        $this->recordedThisRequest = true;
+
+        try {
+            $this->activity->notify($log, $auditable, $actor);
+        } catch (Throwable $exception) {
+            // A notification problem must never prevent an action from being audited.
+            report($exception);
+        }
+
         return $log;
+    }
+
+    /**
+     * Mark the start of a new request.
+     */
+    public function startRequest(): void
+    {
+        $this->recordedThisRequest = false;
+    }
+
+    /**
+     * Determine whether an audit entry was written during the current request.
+     */
+    public function recordedThisRequest(): bool
+    {
+        return $this->recordedThisRequest;
     }
 
     /**

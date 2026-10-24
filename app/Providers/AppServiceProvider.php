@@ -16,6 +16,7 @@ use App\Models\PushSubscription;
 use App\Models\Reminder;
 use App\Models\Task;
 use App\Models\User;
+use App\Services\AuditLogger;
 use App\Services\Notifications\Push\PushGateway;
 use App\Services\Notifications\Push\WebPushGateway;
 use App\Services\Notifications\Sms\LogSmsGateway;
@@ -45,6 +46,9 @@ class AppServiceProvider extends ServiceProvider
         });
 
         $this->app->singleton(PushGateway::class, WebPushGateway::class);
+
+        // One audit logger per request, so it can tell whether the request was already audited.
+        $this->app->scoped(AuditLogger::class);
     }
 
     /**

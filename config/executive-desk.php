@@ -77,4 +77,19 @@ return [
 
     'support_email' => env('APP_SUPPORT_EMAIL'),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Audit Trail
+    |--------------------------------------------------------------------------
+    |
+    | page_views: also record every page a signed-in user opens.
+    | retention_days: delete audit entries older than this (0 keeps them forever).
+    |
+    */
+
+    'audit' => [
+        'page_views' => (bool) env('AUDIT_PAGE_VIEWS', true),
+        'retention_days' => (int) env('AUDIT_RETENTION_DAYS', 0),
+    ],
+
 ];

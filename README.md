@@ -422,3 +422,5 @@ LOG_LEVEL=warning
 - SMS delivery receipts (post-acceptance status) are not reconciled; the history shows provider acceptance only.
 - Frontend tests cover pure logic. Component tests would need `jsdom` and `@testing-library/react`, which are not installed.
 - Offline support covers viewing the snapshot and queuing task status changes only. Other edits need a connection.
+
+adminexecutive@desk.com
