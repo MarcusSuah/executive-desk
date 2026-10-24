@@ -252,11 +252,13 @@ SMS goes through a provider-independent gateway (`App\Services\Notifications\Sms
 
 ### Google sign-in (optional)
 
-The **Sign in with Google** button appears on the sign-in page only when both credentials below are set.
+The **Sign in with Google** button appears on the sign-in page once a Google client ID and secret are configured.
 
 1. In the Google Cloud console, open **APIs & Services → Credentials → Create credentials → OAuth client ID** and choose **Web application**.
-2. Add the authorized redirect URI `{APP_URL}/auth/google/callback`, for example `http://localhost:8000/auth/google/callback`. It must match `APP_URL` exactly, including `http` or `https` and the port.
-3. Put the credentials in `.env`, then run `php artisan config:clear`:
+2. Add the authorized redirect URI shown under **Administration → Settings → Sign-in page**. It has the form `{APP_URL}/auth/google/callback`, for example `http://localhost:8000/auth/google/callback`, and must match exactly, including `http` or `https` and the port.
+3. Paste the client ID and secret into **Administration → Settings → Sign-in page** and click **Save Google sign-in**. The secret is stored encrypted with the application key and never shown again. You can optionally restrict sign-in to one Google Workspace domain.
+
+Alternatively, put the credentials in `.env` and run `php artisan config:clear`. Values saved on the settings page take precedence over `.env`:
 
     ```dotenv
     GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
@@ -270,7 +272,7 @@ Google sign-in never creates accounts. The Google account's email must be verifi
 
 ### Sign-in page image (optional)
 
-To use a photograph behind the sign-in page's brand panel, save it as `public/images/login-hero.jpg`. Landscape images of at least 1600 px wide work best. Without it, the panel uses a dark gradient.
+Administrators can upload a photograph for the sign-in page's brand panel under **Administration → Settings → Sign-in page → Background image** (JPG, PNG, or WebP, up to 5 MB, at least 800 × 600 px; 1600 px or wider looks best). **Use default** returns to the dark gradient. The image is stored privately and served by the app, so `storage:link` is not needed. As a fallback, a file saved as `public/images/login-hero.jpg` is used when nothing has been uploaded.
 
 ### Web Push (PWA)
 

@@ -12,10 +12,13 @@ use App\Services\Notifications\Sms\SmsGateway;
 use App\Services\SystemHealth;
 use App\Support\AppSettings;
 use App\Support\FormOptions;
+use App\Support\SignInSettings;
 use App\Support\Timezones;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -50,6 +53,16 @@ class SettingsController extends Controller
                 'queue' => ['configured' => true, 'detail' => 'Connection: '.config('queue.default')],
             ],
             'health' => $health->snapshot(),
+            'signIn' => [
+                'google_client_id' => (string) AppSettings::get(SignInSettings::GOOGLE_CLIENT_ID, ''),
+                'google_hosted_domain' => (string) AppSettings::get(SignInSettings::GOOGLE_HOSTED_DOMAIN, ''),
+                'google_secret_saved' => SignInSettings::hasStoredGoogleSecret(),
+                'google_enabled' => SignInSettings::googleEnabled(),
+                'google_from_environment' => filled(config('services.google.client_id')),
+                'google_redirect_uri' => SignInSettings::googleRedirectUri(),
+                'background_url' => SignInSettings::backgroundUrl(),
+                'background_uploaded' => SignInSettings::backgroundPath() !== null,
+            ],
             'timezones' => FormOptions::timezones(),
             'reminderMinutes' => FormOptions::reminderMinutes(),
         ]);
@@ -119,6 +132,100 @@ class SettingsController extends Controller
                 ? __('Test email accepted by the mail transport for :email.', ['email' => $user->email])
                 : __('Test email failed: :reason', ['reason' => (string) $result->error]),
         ]);
+
+        return back();
+    }
+
+    /**
+     * Save the Google sign-in credentials. A blank secret keeps the saved one.
+     */
+    public function updateSignIn(Request $request, AuditLogger $audit): RedirectResponse
+    {
+        $validated = $request->validate([
+            'google_client_id' => ['nullable', 'string', 'max:255', 'regex:/^[A-Za-z0-9\-_.]+$/'],
+            'google_client_secret' => ['nullable', 'string', 'max:255'],
+            'google_hosted_domain' => ['nullable', 'string', 'max:255', 'regex:/^[a-z0-9.\-]+\.[a-z]{2,}$/i'],
+            'clear' => ['boolean'],
+        ], [
+            'google_client_id.regex' => 'The client ID looks invalid. Copy it from the Google Cloud console.',
+            'google_hosted_domain.regex' => 'Enter a domain such as yourcompany.com.',
+        ]);
+
+        if ($request->boolean('clear')) {
+            SignInSettings::clearGoogle();
+            $audit->log('settings.google_sign_in_cleared', null, [], [], $request->user());
+            Inertia::flash('toast', ['type' => 'success', 'message' => __('Google sign-in settings removed.')]);
+
+            return back();
+        }
+
+        if (filled($validated['google_client_id'] ?? null)
+            && ! filled($validated['google_client_secret'] ?? null)
+            && ! SignInSettings::hasStoredGoogleSecret()) {
+            throw ValidationException::withMessages(['google_client_secret' => 'Enter the client secret.']);
+        }
+
+        SignInSettings::saveGoogle(
+            $validated['google_client_id'] ?? null,
+            $validated['google_client_secret'] ?? null,
+            $validated['google_hosted_domain'] ?? null,
+        );
+
+        // The secret itself is never written to the audit log.
+        $audit->log('settings.google_sign_in_updated', null, [], [
+            'google_client_id' => $validated['google_client_id'] ?? null,
+            'google_hosted_domain' => $validated['google_hosted_domain'] ?? null,
+            'secret_changed' => filled($validated['google_client_secret'] ?? null),
+        ], $request->user());
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => SignInSettings::googleEnabled()
+            ? __('Google sign-in is on. The button now appears on the sign-in page.')
+            : __('Google sign-in settings saved.')]);
+
+        return back();
+    }
+
+    /**
+     * Upload a new sign-in background image.
+     */
+    public function uploadBackground(Request $request, AuditLogger $audit): RedirectResponse
+    {
+        $validated = $request->validate([
+            'background' => ['required', 'file', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120', 'dimensions:min_width=800,min_height=600'],
+        ], [
+            'background.dimensions' => 'Use an image at least 800 × 600 pixels; 1600 pixels wide or more looks best.',
+        ]);
+
+        $previous = SignInSettings::backgroundPath();
+        $path = $validated['background']->store(SignInSettings::BACKGROUND_DIRECTORY, 'local');
+
+        AppSettings::set(SignInSettings::BACKGROUND_PATH, $path);
+
+        if ($previous !== null) {
+            Storage::disk('local')->delete($previous);
+        }
+
+        $audit->log('settings.sign_in_background_updated', null, [], [], $request->user());
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Sign-in background updated.')]);
+
+        return back();
+    }
+
+    /**
+     * Remove the uploaded sign-in background and use the default.
+     */
+    public function removeBackground(Request $request, AuditLogger $audit): RedirectResponse
+    {
+        $previous = SignInSettings::backgroundPath();
+
+        AppSettings::set(SignInSettings::BACKGROUND_PATH, '');
+
+        if ($previous !== null) {
+            Storage::disk('local')->delete($previous);
+        }
+
+        $audit->log('settings.sign_in_background_removed', null, [], [], $request->user());
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Sign-in background reset to the default.')]);
 
         return back();
     }

@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\SettingsController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\AttachmentController;
 use App\Http\Controllers\Auth\GoogleAuthController;
+use App\Http\Controllers\BrandingController;
 use App\Http\Controllers\BriefingController;
 use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\ChecklistItemController;
@@ -22,6 +23,8 @@ use App\Http\Controllers\TaskController;
 use Illuminate\Support\Facades\Route;
 
 Route::redirect('/', '/dashboard')->name('home');
+
+Route::get('branding/login-background', [BrandingController::class, 'loginBackground'])->name('branding.login-background');
 
 Route::middleware(['guest', 'throttle:10,1'])->group(function () {
     Route::get('auth/google/redirect', [GoogleAuthController::class, 'redirect'])->name('auth.google.redirect');
@@ -92,6 +95,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::middleware('can:'.Permission::ManageSettings->value)->group(function () {
             Route::get('settings', [SettingsController::class, 'edit'])->name('settings.edit');
             Route::put('settings', [SettingsController::class, 'update'])->name('settings.update');
+            Route::put('settings/sign-in', [SettingsController::class, 'updateSignIn'])->name('settings.sign-in');
+            Route::post('settings/login-background', [SettingsController::class, 'uploadBackground'])->middleware('throttle:uploads')->name('settings.login-background');
+            Route::delete('settings/login-background', [SettingsController::class, 'removeBackground'])->name('settings.login-background.destroy');
             Route::post('settings/test-mail', [SettingsController::class, 'testMail'])->middleware('throttle:5,1')->name('settings.test-mail');
         });
 

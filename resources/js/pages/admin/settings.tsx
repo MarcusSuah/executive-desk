@@ -1,3 +1,5 @@
+import { SignInSettingsCard } from '@/components/admin/sign-in-settings-card';
+import type { SignInSettings } from '@/components/admin/sign-in-settings-card';
 import { Head, router, useForm } from '@inertiajs/react';
 import { Activity, CheckCircle2, Mail, XCircle } from 'lucide-react';
 import type { FormEvent } from 'react';
@@ -39,6 +41,7 @@ type SettingsProps = {
         scheduler_last_run: string | null;
         scheduler_healthy: boolean;
     };
+    signIn: SignInSettings;
     timezones: string[];
     reminderMinutes: Option<number>[];
 };
@@ -52,6 +55,7 @@ export default function AdminSettings({
     settings,
     integrations,
     health,
+    signIn,
     timezones,
     reminderMinutes,
 }: SettingsProps) {
@@ -258,6 +262,8 @@ export default function AdminSettings({
                         </CardContent>
                     </Card>
                 </div>
+
+                <SignInSettingsCard settings={signIn} />
 
                 <form onSubmit={submit}>
                     <Card>

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Services\AuditLogger;
+use App\Support\SignInSettings;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -30,7 +31,7 @@ class GoogleAuthController extends Controller
      */
     public static function enabled(): bool
     {
-        return filled(config('services.google.client_id')) && filled(config('services.google.client_secret'));
+        return SignInSettings::googleEnabled();
     }
 
     /**
@@ -39,6 +40,7 @@ class GoogleAuthController extends Controller
     public function redirect(): SymfonyRedirectResponse
     {
         abort_unless(self::enabled(), 404);
+        SignInSettings::applyGoogleConfig();
 
         $driver = Socialite::driver('google');
 
@@ -55,6 +57,7 @@ class GoogleAuthController extends Controller
     public function callback(Request $request, AuditLogger $audit): RedirectResponse
     {
         abort_unless(self::enabled(), 404);
+        SignInSettings::applyGoogleConfig();
 
         try {
             $googleUser = Socialite::driver('google')->user();

@@ -146,14 +146,15 @@ export default function Login({
         <>
             <Head title="Sign in" />
 
-            <div className="grid min-h-svh lg:grid-cols-[minmax(0,1.13fr)_minmax(0,1fr)]">
+            {/* One screen, no scrolling: secondary content hides on short viewports. */}
+            <div className="grid min-h-svh lg:h-svh lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] lg:overflow-hidden">
                 {/* Brand panel */}
                 <aside
                     className="relative hidden overflow-hidden bg-[#071029] text-white lg:flex lg:flex-col"
                     style={
                         heroImage
                             ? {
-                                  backgroundImage: `linear-gradient(90deg, rgba(7,16,41,0.96) 0%, rgba(7,16,41,0.88) 45%, rgba(7,16,41,0.35) 100%), url(${heroImage})`,
+                                  backgroundImage: `linear-gradient(90deg, rgba(7,16,41,0.95) 0%, rgba(7,16,41,0.85) 45%, rgba(7,16,41,0.35) 100%), url(${heroImage})`,
                                   backgroundSize: 'cover',
                                   backgroundPosition: 'center',
                               }
@@ -166,79 +167,79 @@ export default function Login({
                             className="pointer-events-none absolute inset-0"
                         >
                             <div className="absolute inset-0 bg-gradient-to-br from-[#0b1a3d] via-[#071029] to-[#030712]" />
-                            <div className="absolute -top-40 right-[-10%] size-[36rem] rounded-full bg-blue-600/25 blur-3xl" />
-                            <div className="absolute right-[10%] bottom-[-20%] size-[28rem] rounded-full bg-orange-400/15 blur-3xl" />
+                            <div className="absolute -top-40 right-[-10%] size-[32rem] rounded-full bg-blue-600/25 blur-3xl" />
+                            <div className="absolute right-[10%] bottom-[-20%] size-[24rem] rounded-full bg-orange-400/15 blur-3xl" />
                             <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:48px_48px]" />
                         </div>
                     )}
 
-                    <div className="relative flex flex-1 flex-col px-12 py-10 xl:px-14">
-                        <div className="flex items-center gap-3">
-                            <span className="flex size-12 items-center justify-center rounded-xl bg-blue-600/15 text-blue-400">
-                                <AppLogoIcon className="size-8 fill-current" />
+                    <div className="relative flex flex-1 flex-col px-10 py-7 xl:px-12">
+                        <div className="flex items-center gap-2.5">
+                            <span className="flex size-9 items-center justify-center rounded-lg bg-blue-600/15 text-blue-400">
+                                <AppLogoIcon className="size-6 fill-current" />
                             </span>
                             <div>
-                                <p className="text-2xl font-semibold tracking-tight">
+                                <p className="text-lg leading-tight font-semibold tracking-tight">
                                     Executive Desk
                                 </p>
-                                <p className="text-sm text-slate-300">
+                                <p className="text-xs text-slate-300">
                                     Plan Smarter. Achieve More.
                                 </p>
                             </div>
                         </div>
 
-                        <div className="mt-20 max-w-xl xl:mt-24">
-                            <h1 className="text-5xl leading-[1.08] font-semibold tracking-tight xl:text-6xl">
+                        <div className="my-auto max-w-lg py-6">
+                            <h1 className="text-3xl leading-tight font-semibold tracking-tight xl:text-4xl">
                                 Your Executive
                                 <span className="block text-blue-400">
                                     Assistant Platform
                                 </span>
                             </h1>
-                            <p className="mt-6 max-w-md text-lg leading-relaxed text-slate-300">
+                            <p className="mt-3 max-w-md text-sm leading-relaxed text-slate-300 [@media(max-height:640px)]:hidden">
                                 A secure, all-in-one workspace for managing your
                                 schedule, tasks, presentations, and
                                 notifications.
                             </p>
+
+                            <ul className="mt-6 max-w-md space-y-3.5">
+                                {FEATURES.map((feature) => (
+                                    <li
+                                        key={feature.title}
+                                        className="flex items-center gap-3.5"
+                                    >
+                                        <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-white/5 ring-1 ring-white/10 backdrop-blur">
+                                            <feature.icon
+                                                className="size-5 text-blue-400"
+                                                aria-hidden
+                                            />
+                                        </span>
+                                        <span>
+                                            <span className="block text-sm font-semibold">
+                                                {feature.title}
+                                            </span>
+                                            <span className="block text-xs leading-snug text-slate-300">
+                                                {feature.text}
+                                            </span>
+                                        </span>
+                                    </li>
+                                ))}
+                            </ul>
                         </div>
 
-                        <ul className="mt-10 max-w-md space-y-6">
-                            {FEATURES.map((feature) => (
-                                <li
-                                    key={feature.title}
-                                    className="flex items-start gap-5"
-                                >
-                                    <span className="flex size-14 shrink-0 items-center justify-center rounded-xl bg-white/5 ring-1 ring-white/10 backdrop-blur">
-                                        <feature.icon
-                                            className="size-6 text-blue-400"
-                                            aria-hidden
-                                        />
-                                    </span>
-                                    <span>
-                                        <span className="block font-semibold">
-                                            {feature.title}
-                                        </span>
-                                        <span className="block text-sm leading-relaxed text-slate-300">
-                                            {feature.text}
-                                        </span>
-                                    </span>
-                                </li>
-                            ))}
-                        </ul>
-
-                        <div className="mt-auto max-w-md pt-10">
-                            <div className="border-t border-white/10 pt-8">
-                                <div className="flex gap-4" aria-live="polite">
+                        <div className="max-w-md [@media(max-height:720px)]:hidden">
+                            <div className="border-t border-white/10 pt-5">
+                                <div className="flex gap-3" aria-live="polite">
                                     <Quote
-                                        className="size-7 shrink-0 rotate-180 fill-slate-500 text-slate-500"
+                                        className="size-5 shrink-0 rotate-180 fill-slate-500 text-slate-500"
                                         aria-hidden
                                     />
-                                    <p className="min-h-14 text-lg leading-relaxed text-slate-200 italic">
+                                    <p className="min-h-10 text-sm leading-relaxed text-slate-200 italic">
                                         {HIGHLIGHTS[highlight]}
                                     </p>
                                 </div>
                             </div>
                             <div
-                                className="mt-8 flex gap-2"
+                                className="mt-4 flex gap-2"
                                 role="tablist"
                                 aria-label="Highlights"
                             >
@@ -251,7 +252,7 @@ export default function Login({
                                         aria-label={`Highlight ${index + 1}`}
                                         onClick={() => setHighlight(index)}
                                         className={cn(
-                                            'size-2.5 rounded-full transition-colors',
+                                            'size-2 rounded-full transition-colors',
                                             index === highlight
                                                 ? 'bg-blue-500'
                                                 : 'bg-white/25 hover:bg-white/40',
@@ -264,34 +265,34 @@ export default function Login({
                 </aside>
 
                 {/* Sign-in panel */}
-                <main className="relative flex flex-col bg-slate-50 px-4 py-6 sm:px-8 dark:bg-background">
+                <main className="relative flex flex-col bg-slate-50 px-4 py-4 sm:px-8 lg:overflow-y-auto dark:bg-background">
                     <div className="flex justify-end">
                         <AppearanceToggle />
                     </div>
 
-                    <div className="mx-auto flex w-full max-w-lg flex-1 flex-col justify-center py-6">
-                        <div className="mb-8 flex items-center justify-center gap-4">
-                            <AppLogoIcon className="size-12 fill-blue-600 dark:fill-blue-400" />
+                    <div className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center py-2">
+                        <div className="mb-5 flex items-center justify-center gap-3">
+                            <AppLogoIcon className="size-9 fill-blue-600 dark:fill-blue-400" />
                             <div>
-                                <p className="text-3xl font-semibold tracking-tight">
+                                <p className="text-2xl leading-tight font-semibold tracking-tight">
                                     Executive Desk
                                 </p>
-                                <p className="text-sm text-muted-foreground">
+                                <p className="text-xs text-muted-foreground">
                                     Secure. Organized. Always Ahead.
                                 </p>
                             </div>
                         </div>
 
-                        <div className="rounded-2xl border bg-card p-6 shadow-sm sm:p-9">
-                            <h2 className="text-2xl font-semibold tracking-tight">
+                        <div className="rounded-xl border bg-card p-6 shadow-sm sm:px-7">
+                            <h2 className="text-xl font-semibold tracking-tight">
                                 Welcome Back
                             </h2>
-                            <p className="mt-1 text-sm text-muted-foreground">
+                            <p className="mt-0.5 text-sm text-muted-foreground">
                                 Sign in to your Executive Desk account.
                             </p>
 
                             {status && (
-                                <p className="mt-4 rounded-md bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
+                                <p className="mt-3 rounded-md bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
                                     {status}
                                 </p>
                             )}
@@ -299,17 +300,17 @@ export default function Login({
                             <Form
                                 {...store.form()}
                                 resetOnSuccess={['password']}
-                                className="mt-6 flex flex-col gap-5"
+                                className="mt-5 flex flex-col gap-4"
                             >
                                 {({ processing, errors }) => (
                                     <>
-                                        <div className="grid gap-2">
+                                        <div className="grid gap-1.5">
                                             <Label htmlFor="email">
                                                 Email Address
                                             </Label>
                                             <div className="relative">
                                                 <Mail
-                                                    className="pointer-events-none absolute top-1/2 left-3.5 size-4.5 -translate-y-1/2 text-muted-foreground"
+                                                    className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
                                                     aria-hidden
                                                 />
                                                 <Input
@@ -321,7 +322,7 @@ export default function Login({
                                                     tabIndex={1}
                                                     autoComplete="email"
                                                     placeholder="you@example.com"
-                                                    className="h-12 pl-11"
+                                                    className="h-10 pl-9"
                                                 />
                                             </div>
                                             <InputError
@@ -329,7 +330,7 @@ export default function Login({
                                             />
                                         </div>
 
-                                        <div className="grid gap-2">
+                                        <div className="grid gap-1.5">
                                             <div className="flex items-center">
                                                 <Label htmlFor="password">
                                                     Password
@@ -337,7 +338,7 @@ export default function Login({
                                                 {canResetPassword && (
                                                     <TextLink
                                                         href={request()}
-                                                        className="ml-auto text-sm text-blue-600 no-underline hover:underline dark:text-blue-400"
+                                                        className="ml-auto text-xs text-blue-600 no-underline hover:underline dark:text-blue-400"
                                                         tabIndex={5}
                                                     >
                                                         Forgot password?
@@ -346,7 +347,7 @@ export default function Login({
                                             </div>
                                             <div className="relative">
                                                 <Lock
-                                                    className="pointer-events-none absolute top-1/2 left-3.5 z-10 size-4.5 -translate-y-1/2 text-muted-foreground"
+                                                    className="pointer-events-none absolute top-1/2 left-3 z-10 size-4 -translate-y-1/2 text-muted-foreground"
                                                     aria-hidden
                                                 />
                                                 <PasswordInput
@@ -356,7 +357,7 @@ export default function Login({
                                                     tabIndex={2}
                                                     autoComplete="current-password"
                                                     placeholder="Enter your password"
-                                                    className="h-12 pl-11"
+                                                    className="h-10 pl-9"
                                                 />
                                             </div>
                                             <InputError
@@ -364,7 +365,7 @@ export default function Login({
                                             />
                                         </div>
 
-                                        <div className="flex items-center gap-3">
+                                        <div className="flex items-center gap-2.5">
                                             <Checkbox
                                                 id="remember"
                                                 name="remember"
@@ -372,7 +373,7 @@ export default function Login({
                                             />
                                             <Label
                                                 htmlFor="remember"
-                                                className="font-normal text-muted-foreground"
+                                                className="text-xs font-normal text-muted-foreground"
                                             >
                                                 Keep me signed in on this device
                                             </Label>
@@ -380,7 +381,7 @@ export default function Login({
 
                                         <Button
                                             type="submit"
-                                            className="h-12 w-full bg-blue-600 text-base text-white hover:bg-blue-700"
+                                            className="h-10 w-full bg-blue-600 text-white hover:bg-blue-700"
                                             tabIndex={4}
                                             disabled={processing}
                                             data-test="login-button"
@@ -388,7 +389,7 @@ export default function Login({
                                             {processing && <Spinner />}
                                             Sign In
                                             {!processing && (
-                                                <ArrowRight className="size-5" />
+                                                <ArrowRight className="size-4" />
                                             )}
                                         </Button>
                                     </>
@@ -397,14 +398,14 @@ export default function Login({
 
                             {googleEnabled && (
                                 <>
-                                    <div className="my-6 flex items-center gap-4 text-sm text-muted-foreground">
+                                    <div className="my-4 flex items-center gap-3 text-xs text-muted-foreground">
                                         <span className="h-px flex-1 bg-border" />
                                         or
                                         <span className="h-px flex-1 bg-border" />
                                     </div>
                                     <Button
                                         variant="outline"
-                                        className="h-12 w-full text-base"
+                                        className="h-10 w-full"
                                         asChild
                                     >
                                         <a href={googleRedirect.url()}>
@@ -415,7 +416,7 @@ export default function Login({
                                 </>
                             )}
 
-                            <p className="mt-6 text-center text-sm text-muted-foreground">
+                            <p className="mt-4 text-center text-xs text-muted-foreground">
                                 Need help?{' '}
                                 {supportEmail ? (
                                     <a
@@ -432,31 +433,31 @@ export default function Login({
                             </p>
                         </div>
 
-                        <div className="mt-10">
-                            <p className="mb-4 text-center text-sm font-medium text-muted-foreground">
+                        <div className="mt-5 [@media(max-height:820px)]:hidden">
+                            <p className="mb-2.5 text-center text-xs font-medium text-muted-foreground">
                                 Access for
                             </p>
-                            <ul className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                            <ul className="grid grid-cols-3 gap-2.5">
                                 {ROLES.map((role) => (
                                     <li
                                         key={role.title}
-                                        className="rounded-xl border bg-card p-4 text-center"
+                                        className="rounded-lg border bg-card px-2 py-3 text-center"
                                     >
                                         <span
                                             className={cn(
-                                                'mx-auto flex size-12 items-center justify-center rounded-full',
+                                                'mx-auto flex size-8 items-center justify-center rounded-full',
                                                 role.tone,
                                             )}
                                         >
                                             <role.icon
-                                                className="size-5"
+                                                className="size-4"
                                                 aria-hidden
                                             />
                                         </span>
-                                        <p className="mt-3 text-sm font-semibold">
+                                        <p className="mt-1.5 text-xs font-semibold">
                                             {role.title}
                                         </p>
-                                        <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                                        <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">
                                             {role.text}
                                         </p>
                                     </li>
@@ -465,7 +466,7 @@ export default function Login({
                         </div>
                     </div>
 
-                    <p className="text-center text-xs text-muted-foreground">
+                    <p className="pt-2 text-center text-[11px] text-muted-foreground">
                         © {new Date().getFullYear()} Executive Desk. Accounts
                         are created by your administrator.
                     </p>

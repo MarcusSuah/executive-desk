@@ -6,6 +6,7 @@ use App\Actions\Fortify\CreateNewUser;
 use App\Actions\Fortify\ResetUserPassword;
 use App\Http\Controllers\Auth\GoogleAuthController;
 use App\Models\User;
+use App\Support\SignInSettings;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -72,7 +73,7 @@ class FortifyServiceProvider extends ServiceProvider
             'canResetPassword' => Features::enabled(Features::resetPasswords()),
             'googleEnabled' => GoogleAuthController::enabled(),
             'supportEmail' => config('executive-desk.support_email'),
-            'heroImage' => file_exists(public_path('images/login-hero.jpg')) ? '/images/login-hero.jpg' : null,
+            'heroImage' => SignInSettings::backgroundUrl(),
             'status' => $request->session()->get('status'),
         ]));
 
