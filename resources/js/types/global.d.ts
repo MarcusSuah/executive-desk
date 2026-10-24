@@ -11,6 +11,9 @@ declare module '@inertiajs/core' {
         sharedPageProps: {
             name: string;
             auth: Auth;
+            pwa: {
+                vapidPublicKey: string | null;
+            };
             sidebarOpen: boolean;
             [key: string]: unknown;
         };

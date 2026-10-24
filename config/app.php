@@ -69,6 +69,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Default User Time Zone
+    |--------------------------------------------------------------------------
+    |
+    | Timestamps are always stored in UTC. This IANA identifier is the display
+    | time zone assigned to new users until they choose their own.
+    |
+    */
+
+    'default_user_timezone' => env('APP_DEFAULT_USER_TIMEZONE', 'UTC'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Locale Configuration
     |--------------------------------------------------------------------------
     |

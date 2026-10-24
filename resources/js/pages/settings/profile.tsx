@@ -7,6 +7,7 @@ import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { NativeSelect } from '@/components/ui/native-select';
 import { edit } from '@/routes/profile';
 import type { Auth } from '@/types';
 import { send } from '@/routes/verification';
@@ -18,9 +19,11 @@ type PageProps = {
 export default function Profile({
     mustVerifyEmail,
     status,
+    timezones,
 }: {
     mustVerifyEmail: boolean;
     status?: string;
+    timezones: string[];
 }) {
     const { auth } = usePage<PageProps>().props;
 
@@ -82,6 +85,33 @@ export default function Profile({
                                 <InputError
                                     className="mt-2"
                                     message={errors.email}
+                                />
+                            </div>
+
+                            <div className="grid gap-2">
+                                <Label htmlFor="timezone">Time zone</Label>
+
+                                <NativeSelect
+                                    id="timezone"
+                                    name="timezone"
+                                    className="mt-1"
+                                    defaultValue={auth.user.timezone}
+                                >
+                                    {timezones.map((zone) => (
+                                        <option key={zone} value={zone}>
+                                            {zone}
+                                        </option>
+                                    ))}
+                                </NativeSelect>
+
+                                <p className="text-xs text-muted-foreground">
+                                    All dates and times are shown in this time
+                                    zone.
+                                </p>
+
+                                <InputError
+                                    className="mt-2"
+                                    message={errors.timezone}
                                 />
                             </div>
 

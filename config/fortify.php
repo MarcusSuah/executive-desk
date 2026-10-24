@@ -144,7 +144,7 @@ return [
     */
 
     'features' => [
-        Features::registration(),
+        // Self-registration is disabled: administrators create accounts.
         Features::resetPasswords(),
         Features::emailVerification(),
         Features::twoFactorAuthentication([

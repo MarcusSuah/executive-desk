@@ -2,6 +2,10 @@ export type User = {
     id: number;
     name: string;
     email: string;
+    timezone: string;
+    phone: string | null;
+    phone_verified_at: string | null;
+    is_active: boolean;
     avatar?: string;
     email_verified_at: string | null;
     two_factor_enabled?: boolean;
@@ -12,6 +16,8 @@ export type User = {
 
 export type Auth = {
     user: User;
+    roles: string[];
+    permissions: string[];
 };
 
 export type TwoFactorSetupData = {

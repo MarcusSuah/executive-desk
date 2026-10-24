@@ -1,7 +1,12 @@
 import { Link } from '@inertiajs/react';
-import { BookOpen, FolderGit2, LayoutGrid } from 'lucide-react';
+import {
+    CalendarDays,
+    CheckSquare,
+    LayoutGrid,
+    Presentation,
+    Users,
+} from 'lucide-react';
 import AppLogo from '@/components/app-logo';
-import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
 import {
@@ -13,31 +18,31 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
-import { dashboard } from '@/routes';
+import { useAuth } from '@/hooks/use-auth';
+import { calendar, dashboard } from '@/routes';
+import { index as usersIndex } from '@/routes/admin/users';
+import { index as presentationsIndex } from '@/routes/presentations';
+import { index as tasksIndex } from '@/routes/tasks';
 import type { NavItem } from '@/types';
 
-const mainNavItems: NavItem[] = [
-    {
-        title: 'Dashboard',
-        href: dashboard(),
-        icon: LayoutGrid,
-    },
-];
-
-const footerNavItems: NavItem[] = [
-    {
-        title: 'Repository',
-        href: 'https://github.com/laravel/react-starter-kit',
-        icon: FolderGit2,
-    },
-    {
-        title: 'Documentation',
-        href: 'https://laravel.com/docs/starter-kits#react',
-        icon: BookOpen,
-    },
-];
-
 export function AppSidebar() {
+    const { can } = useAuth();
+
+    const mainNavItems: NavItem[] = [
+        { title: 'Dashboard', href: dashboard(), icon: LayoutGrid },
+        { title: 'Calendar', href: calendar(), icon: CalendarDays },
+        { title: 'Tasks', href: tasksIndex(), icon: CheckSquare },
+        {
+            title: 'Presentations',
+            href: presentationsIndex(),
+            icon: Presentation,
+        },
+    ];
+
+    const adminNavItems: NavItem[] = can('users.manage')
+        ? [{ title: 'Users', href: usersIndex(), icon: Users }]
+        : [];
+
     return (
         <Sidebar collapsible="icon" variant="inset">
             <SidebarHeader>
@@ -54,10 +59,10 @@ export function AppSidebar() {
 
             <SidebarContent>
                 <NavMain items={mainNavItems} />
+                <NavMain items={adminNavItems} label="Administration" />
             </SidebarContent>
 
             <SidebarFooter>
-                <NavFooter items={footerNavItems} className="mt-auto" />
                 <NavUser />
             </SidebarFooter>
         </Sidebar>

@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Enums\Permission;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -35,11 +36,23 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
+        $user = $request->user();
+
         return [
             ...parent::share($request),
             'name' => config('app.name'),
             'auth' => [
-                'user' => $request->user(),
+                'user' => $user,
+                'roles' => $user?->getRoleNames()->values()->all() ?? [],
+                'permissions' => $user !== null
+                    ? array_values(array_filter(
+                        array_map(fn (Permission $permission) => $permission->value, Permission::cases()),
+                        fn (string $permission) => $user->can($permission),
+                    ))
+                    : [],
+            ],
+            'pwa' => [
+                'vapidPublicKey' => config('services.webpush.public_key'),
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];

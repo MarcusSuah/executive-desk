@@ -35,4 +35,21 @@ return [
         ],
     ],
 
+    /*
+    | SMS gateway. "none" reports SMS as unavailable; "log" writes messages to
+    | the application log for local development. Add a provider driver once a
+    | gateway has been selected and its API terms confirmed.
+    */
+    'sms' => [
+        'driver' => env('SMS_DRIVER', 'none'),
+        'from' => env('SMS_FROM'),
+    ],
+
+    'webpush' => [
+        'subject' => env('VAPID_SUBJECT'),
+        'public_key' => env('VAPID_PUBLIC_KEY'),
+        'private_key' => env('VAPID_PRIVATE_KEY'),
+        'ttl' => (int) env('WEBPUSH_TTL', 3600),
+    ],
+
 ];

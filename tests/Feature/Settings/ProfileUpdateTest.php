@@ -20,6 +20,7 @@ test('profile information can be updated', function () {
         ->patch(route('profile.update'), [
             'name' => 'Test User',
             'email' => 'test@example.com',
+            'timezone' => 'Asia/Manila',
         ]);
 
     $response
@@ -30,7 +31,22 @@ test('profile information can be updated', function () {
 
     expect($user->name)->toBe('Test User');
     expect($user->email)->toBe('test@example.com');
+    expect($user->timezone)->toBe('Asia/Manila');
     expect($user->email_verified_at)->toBeNull();
+});
+
+test('profile time zone must be a valid IANA identifier', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->patch(route('profile.update'), [
+            'name' => 'Test User',
+            'email' => $user->email,
+            'timezone' => 'Mars/Olympus',
+        ])
+        ->assertSessionHasErrors('timezone');
+
+    expect($user->refresh()->timezone)->toBe('UTC');
 });
 
 test('email verification status is unchanged when the email address is unchanged', function () {
@@ -41,6 +57,7 @@ test('email verification status is unchanged when the email address is unchanged
         ->patch(route('profile.update'), [
             'name' => 'Test User',
             'email' => $user->email,
+            'timezone' => 'UTC',
         ]);
 
     $response
