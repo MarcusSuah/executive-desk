@@ -18,13 +18,12 @@ import { Input } from '@/components/ui/input';
 import { NativeSelect } from '@/components/ui/native-select';
 import { useAuth } from '@/hooks/use-auth';
 import {
-    addDays,
-    dateKey,
     formatDateKey,
     formatTime,
     formatTimeRange,
     minutesIntoDay,
 } from '@/lib/datetime';
+import { coveredDays, HOUR_HEIGHT, layoutDay } from '@/lib/calendar-layout';
 import { eventTypeClasses } from '@/lib/labels';
 import { cn } from '@/lib/utils';
 import { calendar } from '@/routes';
@@ -59,37 +58,12 @@ type CalendarProps = {
     canCreate: boolean;
 };
 
-const HOUR_HEIGHT = 48;
 const VIEWS: { value: View; label: string }[] = [
     { value: 'day', label: 'Day' },
     { value: 'week', label: 'Week' },
     { value: 'month', label: 'Month' },
     { value: 'agenda', label: 'Agenda' },
 ];
-
-/**
- * Get the local dates ("YYYY-MM-DD") an event covers in the viewer's time zone.
- */
-function coveredDays(event: CalendarEvent, timezone: string): string[] {
-    const first = dateKey(event.starts_at, timezone);
-    // An event ending exactly at midnight does not cover the next day.
-    const endIso = new Date(
-        new Date(event.ends_at).getTime() - 60_000,
-    ).toISOString();
-    const last =
-        dateKey(endIso, timezone) < first ? first : dateKey(endIso, timezone);
-    const days: string[] = [];
-
-    for (
-        let day = first;
-        day <= last && days.length < 62;
-        day = addDays(day, 1)
-    ) {
-        days.push(day);
-    }
-
-    return days;
-}
 
 export default function CalendarIndex(props: CalendarProps) {
     const { timezone } = useAuth();
@@ -443,86 +417,6 @@ function MonthView({
             </div>
         </div>
     );
-}
-
-type PositionedEvent = {
-    event: CalendarEvent;
-    top: number;
-    height: number;
-    lane: number;
-    lanes: number;
-};
-
-/**
- * Position timed events within one day, placing overlapping events in side-by-side lanes.
- */
-function layoutDay(
-    day: string,
-    events: CalendarEvent[],
-    timezone: string,
-): PositionedEvent[] {
-    const timed = events
-        .filter((event) => !event.all_day)
-        .map((event) => {
-            const start =
-                dateKey(event.starts_at, timezone) < day
-                    ? 0
-                    : minutesIntoDay(event.starts_at, timezone);
-            const endsLater = dateKey(event.ends_at, timezone) > day;
-            const end = endsLater
-                ? 1440
-                : Math.max(start + 15, minutesIntoDay(event.ends_at, timezone));
-
-            return { event, start, end };
-        })
-        .sort((a, b) => a.start - b.start || b.end - a.end);
-
-    const positioned: PositionedEvent[] = [];
-    let cluster: ((typeof timed)[number] & { lane: number })[] = [];
-    let clusterEnd = -1;
-
-    const flush = () => {
-        const lanes = Math.max(1, ...cluster.map((item) => item.lane + 1));
-
-        for (const item of cluster) {
-            positioned.push({
-                event: item.event,
-                top: (item.start / 60) * HOUR_HEIGHT,
-                height: Math.max(
-                    20,
-                    ((item.end - item.start) / 60) * HOUR_HEIGHT - 2,
-                ),
-                lane: item.lane,
-                lanes,
-            });
-        }
-
-        cluster = [];
-        clusterEnd = -1;
-    };
-
-    for (const item of timed) {
-        if (item.start >= clusterEnd && cluster.length > 0) {
-            flush();
-        }
-
-        const usedLanes = cluster
-            .filter((other) => other.end > item.start)
-            .map((other) => other.lane);
-        let lane = 0;
-        while (usedLanes.includes(lane)) {
-            lane++;
-        }
-
-        cluster.push({ ...item, lane });
-        clusterEnd = Math.max(clusterEnd, item.end);
-    }
-
-    if (cluster.length > 0) {
-        flush();
-    }
-
-    return positioned;
 }
 
 function TimeGridView({

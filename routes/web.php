@@ -1,15 +1,21 @@
 <?php
 
 use App\Enums\Permission;
+use App\Http\Controllers\Admin\AuditLogController;
+use App\Http\Controllers\Admin\SettingsController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\AttachmentController;
+use App\Http\Controllers\BriefingController;
 use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\ChecklistItemController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EventController;
+use App\Http\Controllers\NotificationHistoryController;
 use App\Http\Controllers\OfflineSyncController;
 use App\Http\Controllers\PresentationController;
+use App\Http\Controllers\PushSubscriptionController;
 use App\Http\Controllers\ReminderController;
+use App\Http\Controllers\ReportController;
 use App\Http\Controllers\TaskController;
 use Illuminate\Support\Facades\Route;
 
@@ -50,10 +56,38 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::patch('reminders/{reminder}/toggle', [ReminderController::class, 'toggle'])->name('reminders.toggle');
     Route::post('reminders/{reminder}/retry', [ReminderController::class, 'retry'])->name('reminders.retry');
 
-    Route::prefix('admin')->name('admin.')->middleware('can:'.Permission::ManageUsers->value)->group(function () {
-        Route::resource('users', UserController::class)->except(['show', 'destroy']);
-        Route::patch('users/{user}/active', [UserController::class, 'toggleActive'])->name('users.active');
-        Route::post('users/{user}/password-reset', [UserController::class, 'sendPasswordReset'])->name('users.password-reset');
+    Route::get('briefings', [BriefingController::class, 'index'])->name('briefings.index');
+    Route::post('briefings/generate', [BriefingController::class, 'generate'])->middleware('throttle:20,1')->name('briefings.generate');
+    Route::get('briefings/{briefing}', [BriefingController::class, 'show'])->name('briefings.show');
+    Route::post('briefings/{briefing}/send', [BriefingController::class, 'send'])->middleware('throttle:10,1')->name('briefings.send');
+    Route::get('briefings/{briefing}/pdf', [BriefingController::class, 'pdf'])->middleware('throttle:exports')->name('briefings.pdf');
+
+    Route::get('reports', [ReportController::class, 'index'])->name('reports.index');
+    Route::get('reports/export', [ReportController::class, 'export'])->middleware('throttle:exports')->name('reports.export');
+
+    Route::get('notifications', [NotificationHistoryController::class, 'index'])->name('notifications.history');
+
+    Route::post('push-subscriptions', [PushSubscriptionController::class, 'store'])->name('push-subscriptions.store');
+    Route::post('push-subscriptions/unsubscribe', [PushSubscriptionController::class, 'unsubscribe'])->name('push-subscriptions.unsubscribe');
+    Route::post('push-subscriptions/test', [PushSubscriptionController::class, 'test'])->middleware('throttle:5,1')->name('push-subscriptions.test');
+    Route::delete('push-subscriptions/{subscription}', [PushSubscriptionController::class, 'destroy'])->name('push-subscriptions.destroy');
+
+    Route::prefix('admin')->name('admin.')->group(function () {
+        Route::middleware('can:'.Permission::ManageUsers->value)->group(function () {
+            Route::resource('users', UserController::class)->except(['show', 'destroy']);
+            Route::patch('users/{user}/active', [UserController::class, 'toggleActive'])->name('users.active');
+            Route::post('users/{user}/password-reset', [UserController::class, 'sendPasswordReset'])->name('users.password-reset');
+        });
+
+        Route::middleware('can:'.Permission::ManageSettings->value)->group(function () {
+            Route::get('settings', [SettingsController::class, 'edit'])->name('settings.edit');
+            Route::put('settings', [SettingsController::class, 'update'])->name('settings.update');
+            Route::post('settings/test-mail', [SettingsController::class, 'testMail'])->middleware('throttle:5,1')->name('settings.test-mail');
+        });
+
+        Route::get('audit-logs', [AuditLogController::class, 'index'])
+            ->middleware('can:'.Permission::ViewAuditLogs->value)
+            ->name('audit-logs.index');
     });
 });
 

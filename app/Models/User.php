@@ -114,6 +114,16 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
+     * Get the delivery attempts made to the user.
+     *
+     * @return HasMany<NotificationDelivery, $this>
+     */
+    public function notificationDeliveries(): HasMany
+    {
+        return $this->hasMany(NotificationDelivery::class);
+    }
+
+    /**
      * Get the user's briefings.
      *
      * @return HasMany<ExecutiveBriefing, $this>

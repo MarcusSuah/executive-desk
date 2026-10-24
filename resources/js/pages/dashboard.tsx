@@ -36,6 +36,7 @@ import { auditLabel, eventTypeClasses, humanize } from '@/lib/labels';
 import { cn } from '@/lib/utils';
 import { calendar, dashboard } from '@/routes';
 import { create as createEvent, show as showEvent } from '@/routes/events';
+import { show as showBriefing } from '@/routes/briefings';
 import { show as showPresentation } from '@/routes/presentations';
 import {
     create as createTask,
@@ -944,10 +945,13 @@ function BriefingPreview({
             <CardContent>
                 {briefing ? (
                     <div className="space-y-2">
-                        <p className="text-sm">
+                        <Link
+                            href={showBriefing(briefing.id)}
+                            className="block text-sm hover:underline"
+                        >
                             {briefing.content.headline ??
                                 humanize(briefing.type)}
-                        </p>
+                        </Link>
                         <div className="flex flex-wrap gap-1.5">
                             {Object.entries(briefing.content.summary ?? {}).map(
                                 ([key, value]) => (

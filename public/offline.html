@@ -1,0 +1,349 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="theme-color" content="#172554" />
+        <title>Offline - Executive Desk</title>
+        <link rel="manifest" href="/manifest.webmanifest" />
+        <style>
+            :root {
+                color-scheme: light dark;
+                --bg: #f8fafc;
+                --card: #ffffff;
+                --text: #0f172a;
+                --muted: #64748b;
+                --border: #e2e8f0;
+                --accent: #172554;
+                --warn-bg: #fef3c7;
+                --warn-text: #78350f;
+            }
+            @media (prefers-color-scheme: dark) {
+                :root {
+                    --bg: #0b1120;
+                    --card: #111827;
+                    --text: #f1f5f9;
+                    --muted: #94a3b8;
+                    --border: #1f2937;
+                    --accent: #93c5fd;
+                    --warn-bg: #451a03;
+                    --warn-text: #fde68a;
+                }
+            }
+            * {
+                box-sizing: border-box;
+            }
+            body {
+                margin: 0;
+                font-family:
+                    system-ui,
+                    -apple-system,
+                    'Segoe UI',
+                    sans-serif;
+                background: var(--bg);
+                color: var(--text);
+                line-height: 1.45;
+            }
+            main {
+                max-width: 760px;
+                margin: 0 auto;
+                padding: 24px 16px 48px;
+            }
+            header {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                margin-bottom: 16px;
+            }
+            header img {
+                width: 40px;
+                height: 40px;
+            }
+            h1 {
+                font-size: 1.35rem;
+                margin: 0;
+            }
+            h2 {
+                font-size: 1rem;
+                margin: 0 0 8px;
+            }
+            .banner {
+                background: var(--warn-bg);
+                color: var(--warn-text);
+                border-radius: 8px;
+                padding: 10px 14px;
+                font-size: 0.9rem;
+                margin-bottom: 20px;
+            }
+            section {
+                background: var(--card);
+                border: 1px solid var(--border);
+                border-radius: 12px;
+                padding: 16px;
+                margin-bottom: 16px;
+            }
+            ul {
+                list-style: none;
+                margin: 0;
+                padding: 0;
+            }
+            li {
+                display: flex;
+                justify-content: space-between;
+                gap: 12px;
+                padding: 8px 0;
+                border-top: 1px solid var(--border);
+                font-size: 0.92rem;
+            }
+            li:first-child {
+                border-top: 0;
+            }
+            .muted {
+                color: var(--muted);
+                font-size: 0.85rem;
+            }
+            .day {
+                font-weight: 600;
+                margin-top: 12px;
+                font-size: 0.85rem;
+                color: var(--muted);
+                text-transform: uppercase;
+                letter-spacing: 0.03em;
+            }
+            button {
+                background: var(--accent);
+                color: var(--bg);
+                border: 0;
+                border-radius: 6px;
+                padding: 8px 14px;
+                font-weight: 600;
+                cursor: pointer;
+            }
+        </style>
+    </head>
+    <body>
+        <main>
+            <header>
+                <img src="/icons/icon-192.png" alt="" />
+                <div>
+                    <h1>You are offline</h1>
+                    <div class="muted" id="synced">Executive Desk</div>
+                </div>
+            </header>
+            <div class="banner">
+                This is a read-only copy saved on this device. It may be out of
+                date and is not used for scheduling decisions. Task status
+                changes made in the app while offline are sent to the server
+                when you reconnect.
+                <div style="margin-top: 8px">
+                    <button type="button" onclick="location.reload()">
+                        Try again
+                    </button>
+                </div>
+            </div>
+            <section>
+                <h2>Upcoming appointments (next 7 days)</h2>
+                <div id="events">
+                    <p class="muted">No saved schedule on this device.</p>
+                </div>
+            </section>
+            <section>
+                <h2>Your open tasks</h2>
+                <div id="tasks">
+                    <p class="muted">No saved tasks on this device.</p>
+                </div>
+            </section>
+            <section id="pending-section" hidden>
+                <h2>Changes waiting to sync</h2>
+                <ul id="pending"></ul>
+            </section>
+        </main>
+        <script>
+            (function () {
+                function text(tag, value, className) {
+                    var el = document.createElement(tag);
+                    el.textContent = value;
+                    if (className) el.className = className;
+                    return el;
+                }
+
+                function open() {
+                    return new Promise(function (resolve, reject) {
+                        var request = indexedDB.open('executive-desk', 1);
+                        request.onupgradeneeded = function () {
+                            var db = request.result;
+                            if (!db.objectStoreNames.contains('snapshots'))
+                                db.createObjectStore('snapshots', {
+                                    keyPath: 'user_id',
+                                });
+                            if (!db.objectStoreNames.contains('mutations'))
+                                db.createObjectStore('mutations', {
+                                    keyPath: 'client_mutation_id',
+                                }).createIndex('user_id', 'user_id');
+                        };
+                        request.onsuccess = function () {
+                            resolve(request.result);
+                        };
+                        request.onerror = function () {
+                            reject(request.error);
+                        };
+                    });
+                }
+
+                function all(db, store) {
+                    return new Promise(function (resolve) {
+                        var request = db
+                            .transaction(store, 'readonly')
+                            .objectStore(store)
+                            .getAll();
+                        request.onsuccess = function () {
+                            resolve(request.result || []);
+                        };
+                        request.onerror = function () {
+                            resolve([]);
+                        };
+                    });
+                }
+
+                if (!('indexedDB' in window)) return;
+
+                open()
+                    .then(function (db) {
+                        return Promise.all([
+                            all(db, 'snapshots'),
+                            all(db, 'mutations'),
+                        ]);
+                    })
+                    .then(function (results) {
+                        var snapshots = results[0].sort(function (a, b) {
+                            return b.synced_at.localeCompare(a.synced_at);
+                        });
+                        var snapshot = snapshots[0];
+                        if (!snapshot) return;
+
+                        var tz = snapshot.timezone;
+                        var dateFmt = new Intl.DateTimeFormat(undefined, {
+                            timeZone: tz,
+                            weekday: 'long',
+                            month: 'short',
+                            day: 'numeric',
+                        });
+                        var timeFmt = new Intl.DateTimeFormat(undefined, {
+                            timeZone: tz,
+                            hour: 'numeric',
+                            minute: '2-digit',
+                        });
+                        var fullFmt = new Intl.DateTimeFormat(undefined, {
+                            timeZone: tz,
+                            dateStyle: 'medium',
+                            timeStyle: 'short',
+                        });
+
+                        document.getElementById('synced').textContent =
+                            snapshot.user_name +
+                            ' · saved ' +
+                            fullFmt.format(new Date(snapshot.synced_at)) +
+                            ' · ' +
+                            tz;
+
+                        var events = document.getElementById('events');
+                        if (snapshot.events.length) {
+                            events.textContent = '';
+                            var lastDay = '';
+                            var list = null;
+                            snapshot.events.forEach(function (event) {
+                                var day = dateFmt.format(
+                                    new Date(event.starts_at),
+                                );
+                                if (day !== lastDay) {
+                                    events.appendChild(text('div', day, 'day'));
+                                    list = document.createElement('ul');
+                                    events.appendChild(list);
+                                    lastDay = day;
+                                }
+                                var item = document.createElement('li');
+                                var left = document.createElement('span');
+                                left.appendChild(text('div', event.title));
+                                if (event.location)
+                                    left.appendChild(
+                                        text('div', event.location, 'muted'),
+                                    );
+                                item.appendChild(left);
+                                item.appendChild(
+                                    text(
+                                        'span',
+                                        event.all_day
+                                            ? 'All day'
+                                            : timeFmt.format(
+                                                  new Date(event.starts_at),
+                                              ) +
+                                                  ' – ' +
+                                                  timeFmt.format(
+                                                      new Date(event.ends_at),
+                                                  ),
+                                        'muted',
+                                    ),
+                                );
+                                list.appendChild(item);
+                            });
+                        }
+
+                        var tasks = document.getElementById('tasks');
+                        if (snapshot.tasks.length) {
+                            tasks.textContent = '';
+                            var taskList = document.createElement('ul');
+                            snapshot.tasks.forEach(function (task) {
+                                var item = document.createElement('li');
+                                item.appendChild(
+                                    text(
+                                        'span',
+                                        task.title + ' (' + task.priority + ')',
+                                    ),
+                                );
+                                item.appendChild(
+                                    text(
+                                        'span',
+                                        task.due_at
+                                            ? 'Due ' +
+                                                  fullFmt.format(
+                                                      new Date(task.due_at),
+                                                  )
+                                            : 'No due date',
+                                        'muted',
+                                    ),
+                                );
+                                taskList.appendChild(item);
+                            });
+                            tasks.appendChild(taskList);
+                        }
+
+                        var pending = results[1].filter(function (mutation) {
+                            return mutation.user_id === snapshot.user_id;
+                        });
+                        if (pending.length) {
+                            document.getElementById('pending-section').hidden =
+                                false;
+                            var pendingList =
+                                document.getElementById('pending');
+                            pending.forEach(function (mutation) {
+                                var item = document.createElement('li');
+                                item.appendChild(
+                                    text('span', mutation.task_title),
+                                );
+                                item.appendChild(
+                                    text(
+                                        'span',
+                                        'Mark as ' +
+                                            mutation.status.replace('_', ' '),
+                                        'muted',
+                                    ),
+                                );
+                                pendingList.appendChild(item);
+                            });
+                        }
+                    })
+                    .catch(function () {});
+            })();
+        </script>
+    </body>
+</html>
