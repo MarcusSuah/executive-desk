@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use App\Enums\Permission;
 use Illuminate\Http\Request;
+use Illuminate\Notifications\DatabaseNotification;
 use Inertia\Middleware;
 
 class HandleInertiaRequests extends Middleware
@@ -50,6 +51,22 @@ class HandleInertiaRequests extends Middleware
                         fn (string $permission) => $user->can($permission),
                     ))
                     : [],
+            ],
+            'inbox' => fn (): ?array => $user === null ? null : [
+                'unread' => $user->unreadNotifications()->count(),
+                'items' => $user->notifications()
+                    ->latest()
+                    ->limit(8)
+                    ->get()
+                    ->map(fn (DatabaseNotification $notification) => [
+                        'id' => $notification->id,
+                        'kind' => $notification->data['kind'] ?? 'notice',
+                        'title' => $notification->data['title'] ?? '',
+                        'body' => $notification->data['body'] ?? '',
+                        'read' => $notification->read_at !== null,
+                        'created_at' => $notification->created_at?->toIso8601ZuluString(),
+                    ])
+                    ->all(),
             ],
             'pwa' => [
                 'vapidPublicKey' => config('services.webpush.public_key'),

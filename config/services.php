@@ -45,6 +45,17 @@ return [
         'from' => env('SMS_FROM'),
     ],
 
+    /*
+    | Google sign-in. Only existing, active Executive Desk accounts can sign in;
+    | the Google account email must match and be verified by Google.
+    */
+    'google' => [
+        'client_id' => env('GOOGLE_CLIENT_ID'),
+        'client_secret' => env('GOOGLE_CLIENT_SECRET'),
+        'redirect' => env('GOOGLE_REDIRECT_URI', '/auth/google/callback'),
+        'hosted_domain' => env('GOOGLE_HOSTED_DOMAIN'),
+    ],
+
     'webpush' => [
         'subject' => env('VAPID_SUBJECT'),
         'public_key' => env('VAPID_PUBLIC_KEY'),

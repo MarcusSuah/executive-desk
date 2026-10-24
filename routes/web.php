@@ -5,11 +5,13 @@ use App\Http\Controllers\Admin\AuditLogController;
 use App\Http\Controllers\Admin\SettingsController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\AttachmentController;
+use App\Http\Controllers\Auth\GoogleAuthController;
 use App\Http\Controllers\BriefingController;
 use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\ChecklistItemController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EventController;
+use App\Http\Controllers\InboxController;
 use App\Http\Controllers\NotificationHistoryController;
 use App\Http\Controllers\OfflineSyncController;
 use App\Http\Controllers\PresentationController;
@@ -20,6 +22,11 @@ use App\Http\Controllers\TaskController;
 use Illuminate\Support\Facades\Route;
 
 Route::redirect('/', '/dashboard')->name('home');
+
+Route::middleware(['guest', 'throttle:10,1'])->group(function () {
+    Route::get('auth/google/redirect', [GoogleAuthController::class, 'redirect'])->name('auth.google.redirect');
+    Route::get('auth/google/callback', [GoogleAuthController::class, 'callback'])->name('auth.google.callback');
+});
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', DashboardController::class)->name('dashboard');
@@ -66,6 +73,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('reports/export', [ReportController::class, 'export'])->middleware('throttle:exports')->name('reports.export');
 
     Route::get('notifications', [NotificationHistoryController::class, 'index'])->name('notifications.history');
+
+    Route::post('inbox/read-all', [InboxController::class, 'readAll'])->name('inbox.read-all');
+    Route::post('inbox/{notification}/read', [InboxController::class, 'read'])->whereUuid('notification')->name('inbox.read');
 
     Route::post('push-subscriptions', [PushSubscriptionController::class, 'store'])->name('push-subscriptions.store');
     Route::post('push-subscriptions/unsubscribe', [PushSubscriptionController::class, 'unsubscribe'])->name('push-subscriptions.unsubscribe');

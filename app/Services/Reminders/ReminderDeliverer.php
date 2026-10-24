@@ -6,6 +6,7 @@ use App\Enums\DeliveryStatus;
 use App\Enums\ReminderStatus;
 use App\Models\Reminder;
 use App\Services\Notifications\ErrorSanitizer;
+use App\Services\Notifications\InAppNotifier;
 use App\Services\Notifications\NotificationSender;
 use Illuminate\Support\Facades\DB;
 use Throwable;
@@ -22,6 +23,7 @@ class ReminderDeliverer
         private ReminderPlanner $planner,
         private ReminderMessageFactory $messages,
         private NotificationSender $sender,
+        private InAppNotifier $inApp,
     ) {}
 
     /**
@@ -62,6 +64,18 @@ class ReminderDeliverer
             return;
         }
 
+        $message = $this->messages->make($reminder);
+
+        // One bell item per reminder time, however many channels deliver it.
+        $this->inApp->notify(
+            $reminder->user,
+            "reminder:{$reminder->remindable_type}:{$reminder->remindable_id}:{$reminder->kind->value}:{$reminder->minutes_before}:{$reminder->scheduled_for->timestamp}",
+            $message->type,
+            $message->title,
+            $message->body,
+            $message->url,
+        );
+
         if (! $reminder->user->canReceiveOn($reminder->channel)) {
             $this->finish($reminder, ReminderStatus::Skipped, reason: 'The recipient has turned off this channel.');
 
@@ -72,7 +86,7 @@ class ReminderDeliverer
             $result = $this->sender->send(
                 $reminder->user,
                 $reminder->channel,
-                $this->messages->make($reminder),
+                $message,
                 $reminder,
                 $reminder->attempts,
                 $reminder->scheduled_for,

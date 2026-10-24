@@ -11,6 +11,7 @@ use App\Models\Task;
 use App\Models\User;
 use App\Services\Briefings\BriefingGenerator;
 use App\Services\Briefings\BriefingScheduler;
+use App\Services\Notifications\InAppNotifier;
 use App\Services\Notifications\NotificationSender;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Mail;
@@ -97,8 +98,8 @@ describe('scheduling and delivery', function () {
         Mail::fake();
         $briefing = app(BriefingGenerator::class)->generate($this->executive, BriefingType::Daily);
 
-        (new SendBriefing($briefing->id))->handle(app(NotificationSender::class));
-        (new SendBriefing($briefing->id))->handle(app(NotificationSender::class));
+        (new SendBriefing($briefing->id))->handle(app(NotificationSender::class), app(InAppNotifier::class));
+        (new SendBriefing($briefing->id))->handle(app(NotificationSender::class), app(InAppNotifier::class));
 
         Mail::assertSent(BriefingMail::class, 1);
         expect($briefing->refresh()->status)->toBe(BriefingStatus::Delivered)

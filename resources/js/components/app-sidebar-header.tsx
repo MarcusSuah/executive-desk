@@ -1,4 +1,6 @@
+import { AppearanceToggle } from '@/components/appearance-toggle';
 import { Breadcrumbs } from '@/components/breadcrumbs';
+import { NotificationBell } from '@/components/notification-bell';
 import { OfflineSync } from '@/components/offline-sync';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import type { BreadcrumbItem as BreadcrumbItemType } from '@/types';
@@ -14,8 +16,10 @@ export function AppSidebarHeader({
                 <SidebarTrigger className="-ml-1" />
                 <Breadcrumbs breadcrumbs={breadcrumbs} />
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1">
                 <OfflineSync />
+                <AppearanceToggle />
+                <NotificationBell />
             </div>
         </header>
     );

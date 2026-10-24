@@ -31,7 +31,7 @@ Executive Desk is an executive-assistant platform for managing an executive's ca
 | Tasks         | Priorities, statuses, start and due dates, estimates, related meetings, checklists, attachments, and activity history. Tasks can be reassigned, shown as a list or a board, and repeat on a schedule; each occurrence is created exactly once and keeps its local due time across DST changes.                                                                |
 | Presentations | Presentation date, venue or link, presenter, preparation and review deadlines, versioned private files, a checklist, and approval.                                                                                                                                                                                                                            |
 | Reminders     | Default meeting reminders at 60, 30, 15, and 5 minutes. Every user can configure their own intervals, an appointment can override them, and individual reminders can be turned off.                                                                                                                                                                           |
-| Notifications | Email via SMTP, SMS through a provider-independent gateway, and Web Push (VAPID). A delivery history records every attempt; failed reminders can be retried.                                                                                                                                                                                                  |
+| Notifications | An in-app bell with an unread count, plus email via SMTP, SMS through a provider-independent gateway, and Web Push (VAPID). A delivery history records every attempt; failed reminders can be retried.                                                                                                                                                        |
 | Briefings     | Daily and weekly briefings are built from live data and sent at each user's chosen local time. They can be previewed in the app and downloaded as PDF.                                                                                                                                                                                                        |
 | Reports       | Schedule, task completion, overdue tasks, meeting frequency, presentations, notification delivery, and audit activity. Exports are CSV, Excel, or PDF and follow the same access rules as the app.                                                                                                                                                            |
 | PWA / offline | The app can be installed. When offline it shows a read-only snapshot of the next 7 days and your open tasks. Task status changes made offline sync on reconnection, with duplicate and conflict detection.                                                                                                                                                    |
@@ -249,6 +249,28 @@ SMS goes through a provider-independent gateway (`App\Services\Notifications\Sms
 | `log`            | Development only. Messages, including phone verification codes, are written to the log. |
 
 **No real SMS provider adapter is included yet.** Choose a provider first and confirm its API, authentication, supported countries, sender ID rules, and pricing. Then add a class implementing `SmsGateway` and register it in `AppServiceProvider::register()`. The adapter must return `DeliveryResult::sent($providerMessageId)` only after the provider accepts the message. Users must verify their mobile number (by one-time code) before they can turn SMS on.
+
+### Google sign-in (optional)
+
+The **Sign in with Google** button appears on the sign-in page only when both credentials below are set.
+
+1. In the Google Cloud console, open **APIs & Services → Credentials → Create credentials → OAuth client ID** and choose **Web application**.
+2. Add the authorized redirect URI `{APP_URL}/auth/google/callback`, for example `http://localhost:8000/auth/google/callback`. It must match `APP_URL` exactly, including `http` or `https` and the port.
+3. Put the credentials in `.env`, then run `php artisan config:clear`:
+
+    ```dotenv
+    GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
+    GOOGLE_CLIENT_SECRET=your-client-secret
+    GOOGLE_REDIRECT_URI="${APP_URL}/auth/google/callback"
+    GOOGLE_HOSTED_DOMAIN=yourcompany.com   # optional: only accept this Google Workspace domain
+    APP_SUPPORT_EMAIL=it@yourcompany.com   # optional: "Contact your administrator" link
+    ```
+
+Google sign-in never creates accounts. The Google account's email must be verified by Google and must match an active account that an administrator created. The first successful sign-in links the Google identity to the account; after that, only that Google identity can sign in to it. Users with two-factor authentication still complete the two-factor challenge.
+
+### Sign-in page image (optional)
+
+To use a photograph behind the sign-in page's brand panel, save it as `public/images/login-hero.jpg`. Landscape images of at least 1600 px wide work best. Without it, the panel uses a dark gradient.
 
 ### Web Push (PWA)
 

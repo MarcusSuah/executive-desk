@@ -66,4 +66,15 @@ return [
         'max_attempts' => 5,
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Support Contact
+    |--------------------------------------------------------------------------
+    |
+    | Shown on the sign-in page as "Contact your administrator".
+    |
+    */
+
+    'support_email' => env('APP_SUPPORT_EMAIL'),
+
 ];

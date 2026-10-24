@@ -22,6 +22,7 @@ use Spatie\Permission\Traits\HasRoles;
  * @property int $id
  * @property string $name
  * @property string $email
+ * @property string|null $google_id
  * @property string $timezone
  * @property string|null $phone
  * @property Carbon|null $phone_verified_at
@@ -39,7 +40,7 @@ use Spatie\Permission\Traits\HasRoles;
  * @property-read NotificationPreference|null $notificationPreference
  */
 #[Fillable(['name', 'email', 'password', 'timezone', 'phone'])]
-#[Hidden(['password', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token'])]
+#[Hidden(['password', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token', 'google_id'])]
 class User extends Authenticatable implements MustVerifyEmail
 {
     /** @use HasFactory<UserFactory> */

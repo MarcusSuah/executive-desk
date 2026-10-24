@@ -8,6 +8,7 @@ use App\Enums\DeliveryStatus;
 use App\Enums\NotificationChannel;
 use App\Mail\BriefingMail;
 use App\Models\ExecutiveBriefing;
+use App\Services\Notifications\InAppNotifier;
 use App\Services\Notifications\NotificationSender;
 use App\Services\Notifications\OutboundMessage;
 use App\Services\Reminders\TransientDeliveryException;
@@ -47,7 +48,7 @@ class SendBriefing implements ShouldQueue
     /**
      * Deliver the briefing on each chosen channel that has not already succeeded.
      */
-    public function handle(NotificationSender $sender): void
+    public function handle(NotificationSender $sender, InAppNotifier $inApp): void
     {
         $briefing = ExecutiveBriefing::query()->with('user')->find($this->briefingId);
 
@@ -66,6 +67,9 @@ class SendBriefing implements ShouldQueue
             ->pluck('channel')
             ->map(fn (NotificationChannel $channel) => $channel->value)
             ->all();
+
+        $message = $this->message($briefing);
+        $inApp->notify($user, "briefing:{$briefing->id}", 'briefing', $message->title, $message->body, $message->url);
 
         $results = [];
         $retry = false;
@@ -87,7 +91,7 @@ class SendBriefing implements ShouldQueue
                 continue;
             }
 
-            $result = $sender->send($user, $channel, $this->message($briefing), $briefing, $this->attempts());
+            $result = $sender->send($user, $channel, $message, $briefing, $this->attempts());
             $results[] = $result->status;
             $retry = $retry || $result->retryable;
         }

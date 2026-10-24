@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Actions\Fortify\CreateNewUser;
 use App\Actions\Fortify\ResetUserPassword;
+use App\Http\Controllers\Auth\GoogleAuthController;
 use App\Models\User;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
@@ -69,6 +70,9 @@ class FortifyServiceProvider extends ServiceProvider
     {
         Fortify::loginView(fn (Request $request) => Inertia::render('auth/login', [
             'canResetPassword' => Features::enabled(Features::resetPasswords()),
+            'googleEnabled' => GoogleAuthController::enabled(),
+            'supportEmail' => config('executive-desk.support_email'),
+            'heroImage' => file_exists(public_path('images/login-hero.jpg')) ? '/images/login-hero.jpg' : null,
             'status' => $request->session()->get('status'),
         ]));
 

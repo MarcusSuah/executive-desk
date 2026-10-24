@@ -6,7 +6,9 @@ use App\Enums\TaskStatus;
 use App\Models\Task;
 use App\Models\User;
 use App\Services\AuditLogger;
+use App\Services\Notifications\InAppNotifier;
 use App\Services\Reminders\ReminderPlanner;
+use App\Support\DisplayTime;
 use Illuminate\Support\Facades\DB;
 
 class TaskManager
@@ -14,6 +16,7 @@ class TaskManager
     public function __construct(
         private ReminderPlanner $reminders,
         private AuditLogger $audit,
+        private InAppNotifier $inApp,
     ) {}
 
     /**
@@ -45,6 +48,7 @@ class TaskManager
 
             if ($task->assigned_to !== null && $task->assigned_to !== $actor->id) {
                 $this->audit->log('task.assigned', $task, [], ['assigned_to' => $task->assigned_to], $actor);
+                $this->notifyAssignee($task, $actor);
             }
 
             $this->reminders->syncTask($task);
@@ -68,6 +72,10 @@ class TaskManager
                 $task,
                 $actor,
             );
+
+            if ($task->wasChanged('assigned_to') && $task->assigned_to !== null && $task->assigned_to !== $actor->id) {
+                $this->notifyAssignee($task, $actor);
+            }
 
             $this->reminders->syncTask($task);
 
@@ -119,5 +127,26 @@ class TaskManager
 
             $this->audit->log('task.deleted', $task, $task->only(['title', 'assigned_to', 'due_at']), [], $actor);
         });
+    }
+
+    /**
+     * Add a bell notification for the task's new assignee.
+     */
+    private function notifyAssignee(Task $task, User $actor): void
+    {
+        $assignee = User::find($task->assigned_to);
+
+        if ($assignee === null) {
+            return;
+        }
+
+        $this->inApp->notify(
+            $assignee,
+            "task-assigned:{$task->id}:{$assignee->id}:".now()->timestamp,
+            'task_assigned',
+            'New task: '.$task->title,
+            "Assigned by {$actor->name}".($task->due_at ? ' · due '.DisplayTime::forUser($task->due_at, $assignee) : ''),
+            route('tasks.show', $task),
+        );
     }
 }
