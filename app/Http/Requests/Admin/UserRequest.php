@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Admin;
 
 use App\Concerns\ProfileValidationRules;
+use App\Enums\Permission;
 use App\Enums\Role;
 use App\Models\User;
 use App\Support\Timezones;
@@ -51,7 +52,10 @@ class UserRequest extends FormRequest
             'timezone' => ['required', 'string', Rule::in(Timezones::identifiers())],
             'phone' => ['nullable', 'string', 'regex:/^\+[1-9]\d{7,14}$/'],
             'roles' => ['required', 'array', 'min:1'],
-            'roles.*' => ['distinct', Rule::enum(Role::class)],
+            'roles.*' => ['distinct', 'string', Rule::exists('roles', 'name')->where('guard_name', 'web')],
+            // Permissions granted to this person directly, on top of their roles.
+            'permissions' => [$this->user()->can(Permission::ManageRoles->value) ? 'array' : 'prohibited'],
+            'permissions.*' => ['distinct', Rule::enum(Permission::class)],
         ];
     }
 
@@ -64,6 +68,8 @@ class UserRequest extends FormRequest
     {
         return [
             'phone.regex' => 'Enter the phone number in international format, e.g. +639171234567.',
+            'roles.required' => 'Choose at least one role.',
+            'permissions.prohibited' => 'You need the “Manage roles & permissions” permission to grant individual permissions.',
         ];
     }
 

@@ -2,6 +2,7 @@
 
 use App\Enums\Permission;
 use App\Http\Controllers\Admin\AuditLogController;
+use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\SettingsController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\AttachmentController;
@@ -100,6 +101,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::post('settings/login-background', [SettingsController::class, 'uploadBackground'])->middleware('throttle:uploads')->name('settings.login-background');
             Route::delete('settings/login-background', [SettingsController::class, 'removeBackground'])->name('settings.login-background.destroy');
             Route::post('settings/test-mail', [SettingsController::class, 'testMail'])->middleware('throttle:5,1')->name('settings.test-mail');
+        });
+
+        Route::middleware('can:'.Permission::ManageRoles->value)->group(function () {
+            Route::get('roles', [RoleController::class, 'index'])->name('roles.index');
+            Route::post('roles', [RoleController::class, 'store'])->name('roles.store');
+            Route::put('roles/{role}', [RoleController::class, 'update'])->name('roles.update');
+            Route::delete('roles/{role}', [RoleController::class, 'destroy'])->name('roles.destroy');
         });
 
         Route::get('audit-logs', [AuditLogController::class, 'index'])

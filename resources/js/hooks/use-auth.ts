@@ -2,6 +2,7 @@ import { usePage } from '@inertiajs/react';
 
 export type Permission =
     | 'users.manage'
+    | 'roles.manage'
     | 'settings.manage'
     | 'audit.view'
     | 'calendar.manage'

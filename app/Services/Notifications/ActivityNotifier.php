@@ -2,7 +2,7 @@
 
 namespace App\Services\Notifications;
 
-use App\Enums\Role;
+use App\Enums\Permission;
 use App\Models\AuditLog;
 use App\Models\CalendarEvent;
 use App\Models\ExecutiveBriefing;
@@ -10,9 +10,11 @@ use App\Models\Presentation;
 use App\Models\Task;
 use App\Models\User;
 use App\Support\DisplayTime;
+use App\Support\RolesAndPermissions;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
+use Spatie\Permission\Models\Role as SpatieRole;
 
 /**
  * Turns audited activity into in-app notifications for everyone involved in the
@@ -84,6 +86,10 @@ class ActivityNotifier
         'user.reactivated' => 'reactivated the account of',
         'user.password_reset_sent' => 'sent a password reset link to',
         'user.deleted' => 'deleted the account of',
+        'user.permissions_changed' => 'changed the individual permissions of',
+        'role.created' => 'created the role',
+        'role.updated' => 'changed the role',
+        'role.deleted' => 'deleted the role',
     ];
 
     public function __construct(private InAppNotifier $inApp) {}
@@ -146,6 +152,7 @@ class ActivityNotifier
             $auditable instanceof Presentation => [$auditable->owner_id, $auditable->presenter_id, $auditable->created_by],
             $auditable instanceof ExecutiveBriefing => [$auditable->user_id],
             $auditable instanceof User => [$auditable->id, ...$this->administratorIds()],
+            $auditable instanceof SpatieRole => $this->administratorIds(),
             Str::startsWith($log->action, 'settings.') => $this->administratorIds(),
             default => [],
         };
@@ -154,13 +161,17 @@ class ActivityNotifier
     }
 
     /**
-     * Get the IDs of active administrators.
+     * Get the IDs of active people who manage users or roles.
      *
      * @return array<int, int>
      */
     private function administratorIds(): array
     {
-        return User::query()->active()->role(Role::Administrator->value)->pluck('id')->all();
+        return User::query()
+            ->active()
+            ->permission([Permission::ManageUsers->value, Permission::ManageRoles->value])
+            ->pluck('id')
+            ->all();
     }
 
     /**
@@ -201,6 +212,7 @@ class ActivityNotifier
                 ? "your {$auditable->type->value} briefing"
                 : "the {$auditable->type->value} briefing for {$auditable->user->name}",
             $auditable instanceof User => $auditable->id === $recipient->id ? 'your account' : $auditable->name,
+            $auditable instanceof SpatieRole => '“'.RolesAndPermissions::label($auditable->name).'”',
             default => '',
         };
     }
@@ -233,7 +245,13 @@ class ActivityNotifier
         }
 
         if (isset($new['roles']) && is_array($new['roles'])) {
-            return 'Roles: '.implode(', ', array_map(fn ($role) => Str::headline((string) $role), $new['roles']));
+            return 'Roles: '.implode(', ', array_map(fn ($role) => RolesAndPermissions::label((string) $role), $new['roles']));
+        }
+
+        if (isset($new['permissions']) && is_array($new['permissions'])) {
+            $labels = array_map(fn ($permission) => Permission::tryFrom((string) $permission)?->label() ?? (string) $permission, $new['permissions']);
+
+            return $labels === [] ? 'Permissions: none' : 'Permissions: '.implode(', ', $labels);
         }
 
         if ($auditable instanceof Task && $auditable->due_at !== null && Str::startsWith($log->action, 'task.')) {
@@ -264,6 +282,7 @@ class ActivityNotifier
             $auditable instanceof Presentation => route('presentations.show', $auditable),
             $auditable instanceof ExecutiveBriefing => route('briefings.show', $auditable),
             $auditable instanceof User => $auditable->id === $recipient->id ? route('profile.edit') : route('admin.users.edit', $auditable),
+            $auditable instanceof SpatieRole => route('admin.roles.index'),
             Str::startsWith($log->action, 'settings.') => route('admin.settings.edit'),
             default => null,
         };

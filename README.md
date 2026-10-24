@@ -3,7 +3,7 @@
 Executive Desk is an executive-assistant platform for managing an executive's calendar, tasks, presentations, briefings, and reminders from one place.
 
 - **Stack:** Laravel 13 (PHP 8.4), React 19 + TypeScript, Inertia.js v3, Tailwind CSS 4, MySQL 8+, Laravel Fortify, Spatie Laravel Permission, Laravel queues and scheduler.
-- **Roles:** System Administrator, Executive Assistant, Executive. Accounts are created by administrators; self-registration is disabled.
+- **Roles:** System Administrator, Executive Assistant, and Executive are built in, and administrators can add custom roles under **Administration → Roles & permissions**. One person can hold several roles, each role can grant several permissions, and individual permissions can be added to a single account. Accounts are created by administrators; self-registration is disabled.
 - **Time:** Every timestamp is stored in UTC. Each event, task, and presentation also keeps its IANA time zone (for example `Asia/Manila`). Each user sees times in their own configured zone, never the browser's.
 
 ---

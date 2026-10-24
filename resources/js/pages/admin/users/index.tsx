@@ -11,7 +11,6 @@ import { Input } from '@/components/ui/input';
 import { NativeSelect } from '@/components/ui/native-select';
 import { useAuth } from '@/hooks/use-auth';
 import { formatDateTime } from '@/lib/datetime';
-import { humanize } from '@/lib/labels';
 import {
     active,
     create,
@@ -30,6 +29,8 @@ type AdminUser = {
     phone_verified: boolean;
     is_active: boolean;
     roles: string[];
+    role_labels: string[];
+    permissions: string[];
     last_login_at: string | null;
     created_at: string | null;
 };
@@ -168,9 +169,30 @@ export default function UsersIndex({ users, filters, roles }: UsersIndexProps) {
                                             </span>
                                         </td>
                                         <td className="px-3 py-2">
-                                            {user.roles
-                                                .map(humanize)
-                                                .join(', ') || '—'}
+                                            <span className="flex flex-wrap gap-1">
+                                                {user.role_labels.length === 0
+                                                    ? '—'
+                                                    : user.role_labels.map(
+                                                          (label) => (
+                                                              <span
+                                                                  key={label}
+                                                                  className="rounded-md bg-muted px-1.5 py-0.5 text-xs"
+                                                              >
+                                                                  {label}
+                                                              </span>
+                                                          ),
+                                                      )}
+                                            </span>
+                                            {user.permissions.length > 0 && (
+                                                <span className="mt-0.5 block text-xs text-muted-foreground">
+                                                    + {user.permissions.length}{' '}
+                                                    individual permission
+                                                    {user.permissions.length ===
+                                                    1
+                                                        ? ''
+                                                        : 's'}
+                                                </span>
+                                            )}
                                         </td>
                                         <td className="px-3 py-2 text-muted-foreground">
                                             {user.timezone}

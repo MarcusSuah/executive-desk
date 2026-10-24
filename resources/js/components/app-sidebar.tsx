@@ -8,6 +8,7 @@ import {
     LayoutGrid,
     Presentation,
     ScrollText,
+    ShieldCheck,
     Settings2,
     Users,
 } from 'lucide-react';
@@ -26,6 +27,7 @@ import {
 import { useAuth } from '@/hooks/use-auth';
 import { calendar, dashboard } from '@/routes';
 import { index as auditLogsIndex } from '@/routes/admin/audit-logs';
+import { index as rolesIndex } from '@/routes/admin/roles';
 import { edit as adminSettings } from '@/routes/admin/settings';
 import { index as usersIndex } from '@/routes/admin/users';
 import { index as briefingsIndex } from '@/routes/briefings';
@@ -57,6 +59,15 @@ export function AppSidebar() {
     const adminNavItems: NavItem[] = [
         ...(can('users.manage')
             ? [{ title: 'Users', href: usersIndex(), icon: Users }]
+            : []),
+        ...(can('roles.manage')
+            ? [
+                  {
+                      title: 'Roles & permissions',
+                      href: rolesIndex(),
+                      icon: ShieldCheck,
+                  },
+              ]
             : []),
         ...(can('settings.manage')
             ? [{ title: 'Settings', href: adminSettings(), icon: Settings2 }]

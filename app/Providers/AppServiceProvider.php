@@ -32,6 +32,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
+use Spatie\Permission\Models\Role as SpatieRole;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -108,6 +109,7 @@ class AppServiceProvider extends ServiceProvider
             'executive_briefing' => ExecutiveBriefing::class,
             'audit_log' => AuditLog::class,
             'app_setting' => AppSetting::class,
+            'role' => SpatieRole::class,
         ]);
     }
 

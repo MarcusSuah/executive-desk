@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\Permission;
 use App\Enums\Role;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\UserRequest;
@@ -10,6 +11,7 @@ use App\Services\AuditLogger;
 use App\Services\Reminders\ReminderPlanner;
 use App\Support\AppSettings;
 use App\Support\FormOptions;
+use App\Support\RolesAndPermissions;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -20,6 +22,7 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
+use Spatie\Permission\Models\Role as SpatieRole;
 
 class UserController extends Controller
 {
@@ -34,12 +37,12 @@ class UserController extends Controller
 
         $filters = $request->validate([
             'q' => ['nullable', 'string', 'max:100'],
-            'role' => ['nullable', Rule::enum(Role::class)],
+            'role' => ['nullable', 'string', Rule::exists('roles', 'name')],
             'status' => ['nullable', Rule::in(['active', 'inactive'])],
         ]);
 
         $users = User::query()
-            ->with('roles:id,name')
+            ->with(['roles:id,name', 'permissions:id,name'])
             ->when($filters['q'] ?? null, fn (Builder $query, $search) => $query->where(fn (Builder $query) => $query
                 ->where('name', 'like', "%{$search}%")
                 ->orWhere('email', 'like', "%{$search}%")))
@@ -58,7 +61,7 @@ class UserController extends Controller
                 'role' => $filters['role'] ?? '',
                 'status' => $filters['status'] ?? '',
             ],
-            'roles' => Role::options(),
+            'roles' => $this->roleOptions(),
         ]);
     }
 
@@ -71,7 +74,9 @@ class UserController extends Controller
 
         return Inertia::render('admin/users/form', [
             'user' => null,
-            'roles' => Role::options(),
+            'roles' => $this->roleOptions(),
+            'permissions' => RoleController::permissionCatalogue(),
+            'canManagePermissions' => request()->user()->can(Permission::ManageRoles->value),
             'timezones' => FormOptions::timezones(),
             'defaultTimezone' => AppSettings::defaultTimezone(),
         ]);
@@ -90,10 +95,15 @@ class UserController extends Controller
             $user->forceFill(['email_verified_at' => now()])->save();
             $user->syncRoles($request->validated('roles'));
 
+            if ($request->has('permissions')) {
+                $user->syncPermissions($request->validated('permissions', []));
+            }
+
             $this->audit->log('user.created', $user, [], [
                 'name' => $user->name,
                 'email' => $user->email,
                 'roles' => $request->validated('roles'),
+                'permissions' => $request->validated('permissions', []),
             ], $request->user());
 
             return $user;
@@ -119,8 +129,10 @@ class UserController extends Controller
         Gate::authorize('update', $user);
 
         return Inertia::render('admin/users/form', [
-            'user' => $this->present($user->load('roles:id,name')),
-            'roles' => Role::options(),
+            'user' => $this->present($user->load(['roles:id,name', 'permissions:id,name'])),
+            'roles' => $this->roleOptions(),
+            'permissions' => RoleController::permissionCatalogue(),
+            'canManagePermissions' => request()->user()->can(Permission::ManageRoles->value),
             'timezones' => FormOptions::timezones(),
             'defaultTimezone' => AppSettings::defaultTimezone(),
         ]);
@@ -148,6 +160,16 @@ class UserController extends Controller
 
             if ($previousRoles !== $newRoles) {
                 $this->audit->log('user.roles_changed', $user, ['roles' => $previousRoles], ['roles' => $newRoles], $request->user());
+            }
+
+            if ($request->has('permissions')) {
+                $previousPermissions = $user->getDirectPermissions()->pluck('name')->sort()->values()->all();
+                $user->syncPermissions($request->validated('permissions', []));
+                $newPermissions = $user->getDirectPermissions()->pluck('name')->sort()->values()->all();
+
+                if ($previousPermissions !== $newPermissions) {
+                    $this->audit->log('user.permissions_changed', $user, ['permissions' => $previousPermissions], ['permissions' => $newPermissions], $request->user());
+                }
             }
         });
 
@@ -224,8 +246,31 @@ class UserController extends Controller
             'phone_verified' => $user->phone_verified_at !== null,
             'is_active' => $user->is_active,
             'roles' => $user->roles->pluck('name')->values()->all(),
+            'role_labels' => $user->roles->pluck('name')->map(fn (string $name) => RolesAndPermissions::label($name))->values()->all(),
+            'permissions' => $user->permissions->pluck('name')->values()->all(),
             'last_login_at' => $user->last_login_at?->toIso8601ZuluString(),
             'created_at' => $user->created_at?->toIso8601ZuluString(),
         ];
+    }
+
+    /**
+     * Get every role with its label, description, and permissions.
+     *
+     * @return array<int, array{value: string, label: string, description: string|null, permissions: array<int, string>}>
+     */
+    private function roleOptions(): array
+    {
+        return SpatieRole::query()
+            ->with('permissions:id,name')
+            ->orderBy('name')
+            ->get()
+            ->map(fn (SpatieRole $role) => [
+                'value' => $role->name,
+                'label' => RolesAndPermissions::label($role->name),
+                'description' => Role::tryFrom($role->name)?->description() ?? $role->getAttribute('description'),
+                'permissions' => $role->permissions->pluck('name')->values()->all(),
+            ])
+            ->values()
+            ->all();
     }
 }
